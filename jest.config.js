@@ -9,4 +9,10 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {}]
+  },
+  moduleNameMapper: {
+    '^chalk$': '<rootDir>/__mocks__/chalk.js'
+  }
 };
