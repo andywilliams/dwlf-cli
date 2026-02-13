@@ -9,6 +9,7 @@ import { validateApiKey, displayValidationResult } from './api-client';
 import { createSignalsCommand } from './signals';
 import { createPortfolioCommand } from './portfolio';
 import { createEventsCommand } from './events';
+import { createChartCommand } from './chart';
 
 const program = new Command();
 
@@ -151,6 +152,9 @@ program.addCommand(createPortfolioCommand());
 
 // Add the events command
 program.addCommand(createEventsCommand());
+
+// Add the chart command
+program.addCommand(createChartCommand());
 
 // Help command customization
 program
