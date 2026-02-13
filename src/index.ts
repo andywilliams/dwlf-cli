@@ -26,7 +26,6 @@ import { createEventsCommand } from './events';
 import { createChartCommand } from './chart';
 import { createStrategiesCommand } from './strategies';
 import { createIndicatorsCommand } from './indicators';
-import { createIndicatorsCommand } from './indicators';
 
 const program = new Command();
 
@@ -761,6 +760,21 @@ program.addCommand(createSignalsCommand());
 // Add the portfolio command
 program.addCommand(createPortfolioCommand());
 
+// Add the events command
+program.addCommand(createEventsCommand());
+
+// Add the chart command
+program.addCommand(createChartCommand());
+
+// Add the strategies command
+program.addCommand(createStrategiesCommand());
+
+// Add the indicators command
+program.addCommand(createIndicatorsCommand());
+
+// Add the backtest command
+program.addCommand(createBacktestCommand());
+
 program
   .command('demo')
   .description('Demonstrate all output formatting features')
@@ -875,23 +889,6 @@ function displayWatchlist(symbols: string[], format: string = 'table'): void {
   const totalText = `Total: ${symbols.length} symbol(s)`;
   console.log(chalk.gray(`\n${totalText}`));
 }
-
-// Add the events command
-program.addCommand(createEventsCommand());
-
-// Add the chart command
-program.addCommand(createChartCommand());
-
-// Add the strategies command
-program.addCommand(createStrategiesCommand());
-
-// Add the indicators command
-program.addCommand(createIndicatorsCommand());
-
-// Add the backtest command
-program.addCommand(createBacktestCommand());
->>>>>>> 9b04300 (Add indicators command for technical analysis)
-
 // Help command customization
 program
   .configureHelp({
