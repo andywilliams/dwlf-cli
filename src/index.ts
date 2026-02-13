@@ -6,6 +6,7 @@ import { prompt } from 'enquirer';
 import ora from 'ora';
 import { loadConfig, saveConfig, getApiKey, getApiUrl, maskApiKey, displayConfigStatus, isAuthenticated } from './config';
 import { validateApiKey, displayValidationResult } from './api-client';
+import { createSignalsCommand } from './signals';
 
 const program = new Command();
 
@@ -140,12 +141,8 @@ program
     console.log(chalk.yellow('🔧 Command not yet implemented. Coming soon!'));
   });
 
-program
-  .command('signals')
-  .description('View active trading signals')
-  .action(() => {
-    console.log(chalk.yellow('🔧 Command not yet implemented. Coming soon!'));
-  });
+// Add the signals command
+program.addCommand(createSignalsCommand());
 
 program
   .command('portfolio')
