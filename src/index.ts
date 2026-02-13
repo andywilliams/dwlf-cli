@@ -20,6 +20,7 @@ import {
   SignalData,
   PerformanceData
 } from './formatters';
+import { createSignalsCommand } from './signals';
 
 const program = new Command();
 
@@ -748,82 +749,8 @@ tradesCmd
     console.log(chalk.yellow('💡 Use `dwlf trades <command> --help` for detailed options'));
   });
 
-program
-  .command('signals')
-  .description('View active trading signals')
-  .option('--format <type>', 'output format: table, compact, json, csv', 'table')
-  .option('--strategy <name>', 'filter by strategy name')
-  .action(async (options) => {
-    try {
-      console.log(chalk.bold.cyan('🎯 Trading Signals'));
-      console.log(chalk.gray('Demonstrating formatting system with sample data...'));
-      console.log();
-
-      // Sample signals data to demonstrate formatting
-      const sampleSignals: SignalData[] = [
-        {
-          id: 'signal-001',
-          symbol: 'BTC-USD',
-          strategy: 'Trend Momentum',
-          direction: 'long',
-          entryPrice: 46500,
-          stopLoss: 44000,
-          takeProfit: 52000,
-          strength: 8,
-          status: 'active',
-          createdAt: '2024-01-16T08:30:00Z'
-        },
-        {
-          id: 'signal-002',
-          symbol: 'AAPL',
-          strategy: 'Mean Reversion',
-          direction: 'short',
-          entryPrice: 183.50,
-          stopLoss: 190.00,
-          takeProfit: 175.00,
-          strength: 6,
-          status: 'active',
-          createdAt: '2024-01-16T09:15:00Z'
-        },
-        {
-          id: 'signal-003',
-          symbol: 'NVDA',
-          strategy: 'Breakout',
-          direction: 'long',
-          entryPrice: 720.00,
-          stopLoss: 680.00,
-          takeProfit: 800.00,
-          strength: 9,
-          status: 'triggered',
-          createdAt: '2024-01-15T14:20:00Z'
-        }
-      ];
-
-      // Filter by strategy if specified
-      let filteredSignals = sampleSignals;
-      if (options.strategy) {
-        filteredSignals = sampleSignals.filter(signal => 
-          signal.strategy.toLowerCase().includes(options.strategy?.toLowerCase() || '')
-        );
-      }
-
-      if (filteredSignals.length === 0) {
-        console.log(chalk.yellow(`No signals found${options.strategy ? ` for strategy "${options.strategy}"` : ''}.`));
-        return;
-      }
-
-      const formatted = formatData(filteredSignals, 'signals', { 
-        format: options.format as OutputFormat,
-        colors: true 
-      });
-      console.log(formatted);
-
-      console.log(chalk.gray(`\nShowing ${filteredSignals.length} of ${sampleSignals.length} total signals`));
-
-    } catch (error: any) {
-      console.error(chalk.red('Error fetching signals:'), error.message || 'Unknown error');
-    }
-  });
+// Add the signals command
+program.addCommand(createSignalsCommand());
 
 program
   .command('portfolio')
