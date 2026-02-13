@@ -7,6 +7,7 @@ import ora from 'ora';
 import { loadConfig, saveConfig, getApiKey, getApiUrl, maskApiKey, displayConfigStatus, isAuthenticated } from './config';
 import { validateApiKey, displayValidationResult } from './api-client';
 import { createSignalsCommand } from './signals';
+import { createPortfolioCommand } from './portfolio';
 
 const program = new Command();
 
@@ -144,12 +145,8 @@ program
 // Add the signals command
 program.addCommand(createSignalsCommand());
 
-program
-  .command('portfolio')
-  .description('Portfolio overview')
-  .action(() => {
-    console.log(chalk.yellow('🔧 Command not yet implemented. Coming soon!'));
-  });
+// Add the portfolio command
+program.addCommand(createPortfolioCommand());
 
 // Help command customization
 program
