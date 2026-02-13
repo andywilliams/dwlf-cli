@@ -366,6 +366,51 @@ export class DWLFApiClient {
   async clearWatchlist(): Promise<any> {
     return this.delete('/watchlist/all');
   }
+
+  // Trade management methods
+  async getTrades(filters?: { status?: 'open' | 'closed'; symbol?: string }): Promise<any> {
+    const params: any = {};
+    if (filters?.status) {
+      params.status = filters.status;
+    }
+    if (filters?.symbol) {
+      params.symbol = filters.symbol;
+    }
+    return this.get('/trades', params);
+  }
+
+  async openTrade(tradeData: {
+    symbol: string;
+    side: 'buy' | 'sell';
+    quantity: number;
+    entryPrice: number;
+    stopLoss?: number;
+    takeProfit?: number;
+    notes?: string;
+    isPaperTrade?: boolean;
+  }): Promise<any> {
+    return this.post('/trades', tradeData);
+  }
+
+  async updateTrade(tradeId: string, updates: {
+    stopLoss?: number;
+    takeProfit?: number;
+    notes?: string;
+  }): Promise<any> {
+    return this.put(`/trades/${tradeId}`, updates);
+  }
+
+  async closeTrade(tradeId: string, data: {
+    exitPrice: number;
+    exitAt?: string;
+    notes?: string;
+  }): Promise<any> {
+    return this.post(`/trades/${tradeId}/close`, data);
+  }
+
+  async getTrade(tradeId: string): Promise<any> {
+    return this.get(`/trades/${tradeId}`);
+  }
 }
 
 /**

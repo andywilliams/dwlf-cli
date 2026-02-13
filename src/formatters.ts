@@ -34,6 +34,9 @@ export interface TradeData {
   status: 'open' | 'closed' | 'cancelled';
   openedAt: string;
   closedAt?: string;
+  stopLoss?: number;
+  takeProfit?: number;
+  notes?: string;
 }
 
 export interface SignalData {

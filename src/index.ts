@@ -346,80 +346,406 @@ program
     }
   });
 
-program
+// Trades command with subcommands for comprehensive trade management
+const tradesCmd = program
   .command('trades')
-  .description('View and manage trades')
+  .description('Trade journal management');
+
+// List trades
+tradesCmd
+  .command('list')
+  .alias('ls')
+  .description('List trades')
   .option('--format <type>', 'output format: table, compact, json, csv', 'table')
   .option('--status <status>', 'filter by status: open, closed, all', 'all')
+  .option('--symbol <symbol>', 'filter by symbol (e.g., BTC-USD, AAPL)')
   .action(async (options) => {
     try {
-      console.log(chalk.bold.cyan('📊 Trades'));
-      console.log(chalk.gray('Demonstrating formatting system with sample data...'));
-      console.log();
-
-      // Sample trade data to demonstrate formatting
-      const sampleTrades: TradeData[] = [
-        {
-          id: 'trade-001-abc',
-          symbol: 'BTC-USD',
-          side: 'buy',
-          quantity: 0.5,
-          entryPrice: 45000,
-          exitPrice: 47500,
-          pnl: 1250,
-          pnlPercent: 5.56,
-          status: 'closed',
-          openedAt: '2024-01-15T10:30:00Z',
-          closedAt: '2024-01-16T14:20:00Z'
-        },
-        {
-          id: 'trade-002-def',
-          symbol: 'AAPL',
-          side: 'buy',
-          quantity: 100,
-          entryPrice: 185.50,
-          exitPrice: 182.30,
-          pnl: -320,
-          pnlPercent: -1.73,
-          status: 'closed',
-          openedAt: '2024-01-14T09:15:00Z',
-          closedAt: '2024-01-15T16:45:00Z'
-        },
-        {
-          id: 'trade-003-ghi',
-          symbol: 'TSLA',
-          side: 'sell',
-          quantity: 50,
-          entryPrice: 245.80,
-          pnl: 150,
-          pnlPercent: 1.22,
-          status: 'open',
-          openedAt: '2024-01-16T11:20:00Z'
-        }
-      ];
-
-      // Filter by status if specified
-      let filteredTrades = sampleTrades;
-      if (options.status && options.status !== 'all') {
-        filteredTrades = sampleTrades.filter(trade => trade.status === options.status);
-      }
-
-      if (filteredTrades.length === 0) {
-        console.log(chalk.yellow(`No ${options.status} trades found.`));
+      // Check authentication
+      const apiKey = await getApiKey();
+      if (!apiKey) {
+        console.log(chalk.red('❌ No API key configured.'));
+        console.log(chalk.gray('Run `dwlf login` to configure your credentials.'));
         return;
       }
 
-      const formatted = formatData(filteredTrades, 'trades', { 
+      const apiUrl = await getApiUrl();
+      const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
+
+      // Prepare filters
+      const filters: any = {};
+      if (options.status && options.status !== 'all') {
+        filters.status = options.status;
+      }
+      if (options.symbol) {
+        filters.symbol = normalizeSymbol(options.symbol);
+      }
+
+      const spinner = ora('Fetching trades...').start();
+      const tradesResponse = await client.getTrades(filters);
+      spinner.stop();
+
+      if (!tradesResponse || !tradesResponse.trades || tradesResponse.trades.length === 0) {
+        const statusText = options.status === 'all' ? '' : options.status;
+        const symbolText = options.symbol ? ` for ${options.symbol}` : '';
+        console.log(chalk.yellow(`📋 No ${statusText} trades found${symbolText}.`));
+        return;
+      }
+
+      const trades = tradesResponse.trades;
+      
+      // Transform API data to formatter format
+      const tradeData: TradeData[] = trades.map((trade: any) => ({
+        id: trade.tradeId || trade.id,
+        symbol: trade.symbol,
+        side: trade.side,
+        quantity: Number(trade.quantity),
+        entryPrice: Number(trade.entryPrice),
+        exitPrice: trade.exitPrice ? Number(trade.exitPrice) : undefined,
+        pnl: trade.pnlAbs ? Number(trade.pnlAbs) : undefined,
+        pnlPercent: trade.pnlPct ? Number(trade.pnlPct) : undefined,
+        status: trade.status,
+        openedAt: trade.openedAt,
+        closedAt: trade.closedAt,
+        stopLoss: trade.stopLoss ? Number(trade.stopLoss) : undefined,
+        takeProfit: trade.takeProfit ? Number(trade.takeProfit) : undefined,
+        notes: trade.notes
+      }));
+
+      console.log(chalk.bold.cyan(`📊 Trades ${options.status !== 'all' ? `(${options.status})` : ''}`));
+      
+      const formatted = formatData(tradeData, 'trades', { 
         format: options.format as OutputFormat,
         colors: true 
       });
       console.log(formatted);
 
-      console.log(chalk.gray(`\nShowing ${filteredTrades.length} of ${sampleTrades.length} total trades`));
+      // Summary statistics
+      if (options.format === 'table') {
+        const openTrades = tradeData.filter(t => t.status === 'open').length;
+        const closedTrades = tradeData.filter(t => t.status === 'closed').length;
+        const totalPnL = tradeData
+          .filter(t => t.pnl !== undefined)
+          .reduce((sum, t) => sum + (t.pnl || 0), 0);
+        
+        console.log(chalk.gray(`\nSummary: ${openTrades} open, ${closedTrades} closed, Total P&L: ${totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)}`));
+      }
 
     } catch (error: any) {
       console.error(chalk.red('Error fetching trades:'), error.message || 'Unknown error');
+      if (error.status === 401) {
+        console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
+      }
     }
+  });
+
+// Open new trade
+tradesCmd
+  .command('open')
+  .description('Open a new trade')
+  .requiredOption('--symbol <symbol>', 'trading symbol (e.g., BTC-USD, AAPL)')
+  .requiredOption('--side <side>', 'trade direction: buy or sell')
+  .requiredOption('--quantity <qty>', 'position size')
+  .requiredOption('--entry <price>', 'entry price')
+  .option('--stop <price>', 'stop loss price')
+  .option('--target <price>', 'take profit price')
+  .option('--notes <text>', 'trade notes')
+  .option('--paper', 'paper trade (default: true for CLI)')
+  .action(async (options) => {
+    try {
+      // Check authentication
+      const apiKey = await getApiKey();
+      if (!apiKey) {
+        console.log(chalk.red('❌ No API key configured.'));
+        console.log(chalk.gray('Run `dwlf login` to configure your credentials.'));
+        return;
+      }
+
+      // Validate inputs
+      const side = options.side.toLowerCase();
+      if (!['buy', 'sell'].includes(side)) {
+        console.log(chalk.red('Error: Side must be "buy" or "sell"'));
+        return;
+      }
+
+      const quantity = parseFloat(options.quantity);
+      const entryPrice = parseFloat(options.entry);
+      const stopLoss = options.stop ? parseFloat(options.stop) : undefined;
+      const takeProfit = options.target ? parseFloat(options.target) : undefined;
+
+      if (isNaN(quantity) || quantity <= 0) {
+        console.log(chalk.red('Error: Quantity must be a positive number'));
+        return;
+      }
+
+      if (isNaN(entryPrice) || entryPrice <= 0) {
+        console.log(chalk.red('Error: Entry price must be a positive number'));
+        return;
+      }
+
+      const tradeData: any = {
+        symbol: normalizeSymbol(options.symbol),
+        side: side as 'buy' | 'sell',
+        quantity,
+        entryPrice,
+        isPaperTrade: true // CLI defaults to paper trading
+      };
+
+      // Only include optional fields if they have values
+      if (stopLoss !== undefined) tradeData.stopLoss = stopLoss;
+      if (takeProfit !== undefined) tradeData.takeProfit = takeProfit;
+      if (options.notes) tradeData.notes = options.notes;
+
+      console.log(chalk.gray('Opening trade...'));
+      console.log(chalk.gray(`${side.toUpperCase()} ${quantity} ${tradeData.symbol} @ $${entryPrice}`));
+      
+      const apiUrl = await getApiUrl();
+      const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
+      
+      const spinner = ora('Submitting trade...').start();
+      const result = await client.openTrade(tradeData);
+      spinner.stop();
+
+      console.log(chalk.green('✅ Trade opened successfully!'));
+      console.log(chalk.gray(`Trade ID: ${result.tradeId}`));
+      if (stopLoss) console.log(chalk.gray(`Stop Loss: $${stopLoss}`));
+      if (takeProfit) console.log(chalk.gray(`Take Profit: $${takeProfit}`));
+
+    } catch (error: any) {
+      console.error(chalk.red('Error opening trade:'), error.message || 'Unknown error');
+      if (error.status === 401) {
+        console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
+      }
+    }
+  });
+
+// Close trade
+tradesCmd
+  .command('close')
+  .description('Close an open trade')
+  .requiredOption('--id <tradeId>', 'trade ID to close')
+  .requiredOption('--price <price>', 'exit price')
+  .option('--notes <text>', 'closing notes')
+  .action(async (options) => {
+    try {
+      // Check authentication
+      const apiKey = await getApiKey();
+      if (!apiKey) {
+        console.log(chalk.red('❌ No API key configured.'));
+        console.log(chalk.gray('Run `dwlf login` to configure your credentials.'));
+        return;
+      }
+
+      const exitPrice = parseFloat(options.price);
+      if (isNaN(exitPrice) || exitPrice <= 0) {
+        console.log(chalk.red('Error: Exit price must be a positive number'));
+        return;
+      }
+
+      const apiUrl = await getApiUrl();
+      const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
+
+      const closeData: any = {
+        exitPrice,
+        exitAt: new Date().toISOString()
+      };
+
+      // Only include notes if provided
+      if (options.notes) closeData.notes = options.notes;
+
+      const spinner = ora('Closing trade...').start();
+      const result = await client.closeTrade(options.id, closeData);
+      spinner.stop();
+
+      console.log(chalk.green('✅ Trade closed successfully!'));
+      console.log(chalk.gray(`Exit Price: $${exitPrice}`));
+      if (result.pnlAbs !== undefined) {
+        const pnlColor = result.pnlAbs >= 0 ? chalk.green : chalk.red;
+        console.log(pnlColor(`P&L: ${result.pnlAbs >= 0 ? '+' : ''}$${result.pnlAbs.toFixed(2)} (${result.pnlPct >= 0 ? '+' : ''}${result.pnlPct.toFixed(2)}%)`));
+      }
+
+    } catch (error: any) {
+      console.error(chalk.red('Error closing trade:'), error.message || 'Unknown error');
+      if (error.status === 401) {
+        console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
+      }
+    }
+  });
+
+// Update trade (stop loss, take profit, notes)
+tradesCmd
+  .command('update')
+  .description('Update trade parameters')
+  .requiredOption('--id <tradeId>', 'trade ID to update')
+  .option('--stop <price>', 'new stop loss price')
+  .option('--target <price>', 'new take profit price')
+  .option('--notes <text>', 'update notes')
+  .action(async (options) => {
+    try {
+      // Check authentication
+      const apiKey = await getApiKey();
+      if (!apiKey) {
+        console.log(chalk.red('❌ No API key configured.'));
+        console.log(chalk.gray('Run `dwlf login` to configure your credentials.'));
+        return;
+      }
+
+      // Validate at least one update is provided
+      if (!options.stop && !options.target && !options.notes) {
+        console.log(chalk.red('Error: Specify at least one parameter to update (--stop, --target, or --notes)'));
+        return;
+      }
+
+      const updates: any = {};
+      
+      if (options.stop) {
+        const stopLoss = parseFloat(options.stop);
+        if (isNaN(stopLoss) || stopLoss <= 0) {
+          console.log(chalk.red('Error: Stop loss must be a positive number'));
+          return;
+        }
+        updates.stopLoss = stopLoss;
+      }
+
+      if (options.target) {
+        const takeProfit = parseFloat(options.target);
+        if (isNaN(takeProfit) || takeProfit <= 0) {
+          console.log(chalk.red('Error: Take profit must be a positive number'));
+          return;
+        }
+        updates.takeProfit = takeProfit;
+      }
+
+      if (options.notes) {
+        updates.notes = options.notes;
+      }
+
+      const apiUrl = await getApiUrl();
+      const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
+
+      const spinner = ora('Updating trade...').start();
+      await client.updateTrade(options.id, updates);
+      spinner.stop();
+
+      console.log(chalk.green('✅ Trade updated successfully!'));
+      if (updates.stopLoss) console.log(chalk.gray(`New Stop Loss: $${updates.stopLoss}`));
+      if (updates.takeProfit) console.log(chalk.gray(`New Take Profit: $${updates.takeProfit}`));
+      if (updates.notes) console.log(chalk.gray(`Updated Notes: ${updates.notes}`));
+
+    } catch (error: any) {
+      console.error(chalk.red('Error updating trade:'), error.message || 'Unknown error');
+      if (error.status === 401) {
+        console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
+      }
+    }
+  });
+
+// Show trade details
+tradesCmd
+  .command('show')
+  .description('Show detailed information for a specific trade')
+  .requiredOption('--id <tradeId>', 'trade ID to display')
+  .option('--format <type>', 'output format: table, json', 'table')
+  .action(async (options) => {
+    try {
+      // Check authentication
+      const apiKey = await getApiKey();
+      if (!apiKey) {
+        console.log(chalk.red('❌ No API key configured.'));
+        console.log(chalk.gray('Run `dwlf login` to configure your credentials.'));
+        return;
+      }
+
+      const apiUrl = await getApiUrl();
+      const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
+
+      const spinner = ora('Fetching trade details...').start();
+      const trade = await client.getTrade(options.id);
+      spinner.stop();
+
+      if (options.format === 'json') {
+        console.log(formatJSON(trade, true));
+        return;
+      }
+
+      // Display trade details in table format
+      console.log(chalk.bold.cyan(`📊 Trade Details: ${trade.tradeId}`));
+      
+      const details = new Table({
+        colAligns: ['left', 'left'],
+        style: { head: [], border: ['grey'] }
+      });
+
+      details.push(
+        ['Symbol', chalk.bold(trade.symbol)],
+        ['Side', chalk.bold(trade.side.toUpperCase())],
+        ['Quantity', trade.quantity.toString()],
+        ['Entry Price', `$${Number(trade.entryPrice).toFixed(2)}`],
+        ['Status', trade.status === 'open' ? chalk.green('OPEN') : chalk.gray('CLOSED')]
+      );
+
+      if (trade.exitPrice) {
+        details.push(['Exit Price', `$${Number(trade.exitPrice).toFixed(2)}`]);
+      }
+
+      if (trade.stopLoss) {
+        details.push(['Stop Loss', `$${Number(trade.stopLoss).toFixed(2)}`]);
+      }
+
+      if (trade.takeProfit) {
+        details.push(['Take Profit', `$${Number(trade.takeProfit).toFixed(2)}`]);
+      }
+
+      if (trade.pnlAbs !== undefined) {
+        const pnlColor = trade.pnlAbs >= 0 ? chalk.green : chalk.red;
+        details.push([
+          'P&L', 
+          pnlColor(`${trade.pnlAbs >= 0 ? '+' : ''}$${trade.pnlAbs.toFixed(2)} (${trade.pnlPct >= 0 ? '+' : ''}${trade.pnlPct.toFixed(2)}%)`)
+        ]);
+      }
+
+      details.push(
+        ['Opened', new Date(trade.openedAt).toLocaleString()]
+      );
+
+      if (trade.closedAt) {
+        details.push(['Closed', new Date(trade.closedAt).toLocaleString()]);
+      }
+
+      if (trade.notes) {
+        details.push(['Notes', trade.notes]);
+      }
+
+      console.log(details.toString());
+
+    } catch (error: any) {
+      console.error(chalk.red('Error fetching trade details:'), error.message || 'Unknown error');
+      if (error.status === 401) {
+        console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
+      }
+    }
+  });
+
+// Default trades command shows list
+tradesCmd
+  .description('View and manage trades (use `dwlf trades list` or see subcommands)')
+  .action(async () => {
+    console.log(chalk.bold.cyan('📊 DWLF Trade Management'));
+    console.log();
+    console.log('Available commands:');
+    console.log(`  ${chalk.cyan('dwlf trades list')}         List all trades`);
+    console.log(`  ${chalk.cyan('dwlf trades open')}         Open a new trade`);
+    console.log(`  ${chalk.cyan('dwlf trades close')}        Close an existing trade`);
+    console.log(`  ${chalk.cyan('dwlf trades update')}       Update trade parameters`);
+    console.log(`  ${chalk.cyan('dwlf trades show')}         Show trade details`);
+    console.log();
+    console.log('Examples:');
+    console.log(`  ${chalk.gray('dwlf trades list --status open')}`);
+    console.log(`  ${chalk.gray('dwlf trades open --symbol BTC-USD --side buy --quantity 0.1 --entry 46000 --stop 44000 --target 50000')}`);
+    console.log(`  ${chalk.gray('dwlf trades close --id TRADE123 --price 47500')}`);
+    console.log(`  ${chalk.gray('dwlf trades update --id TRADE123 --stop 45000')}`);
+    console.log();
+    console.log(chalk.yellow('💡 Use `dwlf trades <command> --help` for detailed options'));
   });
 
 program
