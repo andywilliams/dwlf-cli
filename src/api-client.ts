@@ -1,4 +1,43 @@
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import chalk from 'chalk';
+
+/**
+ * Normalize symbol input to DWLF's expected format (e.g. BTC-USD).
+ * Reused from @dwlf/mcp-server package for consistency.
+ */
+const KNOWN_STOCKS = new Set([
+  'NVDA', 'TSLA', 'META', 'AAPL', 'AMZN', 'GOOG', 'GOOGL', 'MSFT', 'AMD',
+  'SLV', 'GDXJ', 'SILJ', 'AGQ', 'GLD', 'GDX', 'GOLD',  // ETFs/metals
+  'MARA', 'RIOT', 'BTBT', 'CIFR', 'IREN', 'CLSK',       // crypto miners
+  'COIN', 'MSTR', 'HUT', 'HIVE', 'BITF', 'WULF',        // crypto-adjacent
+  'LSPD', 'SOFI',                                          // fintech
+]);
+
+export function normalizeSymbol(input: string): string {
+  let s = input.trim().toUpperCase();
+
+  // Already has separator: BTC/USD → BTC-USD, BTC-USD stays
+  if (s.includes('/')) {
+    return s.replace('/', '-');
+  }
+  if (s.includes('-')) {
+    return s;
+  }
+
+  // Known stock ticker — pass through as-is
+  if (KNOWN_STOCKS.has(s)) {
+    return s;
+  }
+
+  // Detect concatenated pair: BTCUSD, ETHUSD, SOLUSD etc.
+  const pairMatch = s.match(/^([A-Z]{2,5})(USD|USDT|EUR|GBP|BTC|ETH)$/);
+  if (pairMatch) {
+    return `${pairMatch[1]}-${pairMatch[2]}`;
+  }
+
+  // Bare crypto symbol: BTC → BTC-USD
+  return `${s}-USD`;
+}
 
 export interface ApiValidationResult {
   valid: boolean;
@@ -9,8 +48,298 @@ export interface ApiValidationResult {
   };
 }
 
+export interface ApiClientOptions {
+  apiKey?: string;
+  baseUrl?: string;
+  timeout?: number;
+  maxRetries?: number;
+  retryDelay?: number;
+  rateLimit?: {
+    requests: number;
+    per: number; // milliseconds
+  };
+}
+
+export interface RetryConfig {
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
+  backoffMultiplier: number;
+}
+
 /**
- * Validate an API key by making a test request
+ * Rate limiter implementation
+ */
+class RateLimiter {
+  private requests: number[] = [];
+  private maxRequests: number;
+  private windowMs: number;
+
+  constructor(maxRequests: number, windowMs: number) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+  }
+
+  async wait(): Promise<void> {
+    const now = Date.now();
+    
+    // Remove requests outside the current window
+    this.requests = this.requests.filter(time => now - time < this.windowMs);
+    
+    if (this.requests.length >= this.maxRequests) {
+      // Calculate how long to wait until the oldest request expires
+      const oldestRequest = Math.min(...this.requests);
+      const waitTime = this.windowMs - (now - oldestRequest);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return this.wait(); // Recursive call to check again
+    }
+    
+    this.requests.push(now);
+  }
+}
+
+/**
+ * Enhanced DWLF API client with error handling, rate limiting, and retry logic
+ */
+export class DWLFApiClient {
+  private http: AxiosInstance;
+  private retryConfig: RetryConfig;
+  private rateLimiter?: RateLimiter;
+
+  constructor(options: ApiClientOptions = {}) {
+    const {
+      apiKey,
+      baseUrl = 'https://api.dwlf.co.uk',
+      timeout = 30000,
+      maxRetries = 3,
+      retryDelay = 1000,
+      rateLimit
+    } = options;
+
+    // Set up rate limiter if configured
+    if (rateLimit) {
+      this.rateLimiter = new RateLimiter(rateLimit.requests, rateLimit.per);
+    }
+
+    // Retry configuration
+    this.retryConfig = {
+      maxRetries,
+      baseDelay: retryDelay,
+      maxDelay: 10000,
+      backoffMultiplier: 2
+    };
+
+    // Create axios instance with default configuration
+    this.http = axios.create({
+      baseURL: `${baseUrl}/v2`,
+      timeout,
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'dwlf-cli/0.1.0',
+        ...(apiKey ? { Authorization: `ApiKey ${apiKey}` } : {}),
+      },
+    });
+
+    // Add response interceptor for error handling
+    this.http.interceptors.response.use(
+      (response) => response,
+      async (error: AxiosError) => {
+        return this.handleError(error);
+      }
+    );
+  }
+
+  private async handleError(error: AxiosError): Promise<never> {
+    const status = error.response?.status;
+    const message = this.extractErrorMessage(error);
+
+    // Create a structured error
+    const apiError = new Error(`API Error: ${message}`);
+    (apiError as any).status = status;
+    (apiError as any).isApiError = true;
+    
+    throw apiError;
+  }
+
+  private extractErrorMessage(error: AxiosError): string {
+    if (error.code === 'ECONNREFUSED') {
+      return 'Cannot connect to DWLF API. Please check your internet connection.';
+    }
+    
+    if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+
+    const status = error.response?.status;
+    const data = error.response?.data as any;
+
+    if (status === 401) {
+      return 'Invalid API key. Please check your authentication credentials.';
+    }
+    
+    if (status === 403) {
+      return 'Access forbidden. You may not have permission to access this resource.';
+    }
+    
+    if (status === 404) {
+      return 'Resource not found.';
+    }
+    
+    if (status === 429) {
+      return 'Rate limit exceeded. Please wait a moment before trying again.';
+    }
+    
+    if (status && status >= 500) {
+      return 'Server error. Please try again later.';
+    }
+
+    // Try to extract error message from response
+    if (data?.error) {
+      return typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+    }
+    
+    if (data?.message) {
+      return data.message;
+    }
+
+    return error.message || 'Unknown error occurred';
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private calculateRetryDelay(attempt: number): number {
+    const delay = this.retryConfig.baseDelay * Math.pow(this.retryConfig.backoffMultiplier, attempt - 1);
+    return Math.min(delay, this.retryConfig.maxDelay);
+  }
+
+  private shouldRetry(error: any, attempt: number): boolean {
+    if (attempt >= this.retryConfig.maxRetries) {
+      return false;
+    }
+
+    // Retry on network errors
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+      return true;
+    }
+
+    // Retry on 5xx server errors and 429 rate limiting
+    const status = error.response?.status;
+    return status === 429 || (status >= 500 && status <= 599);
+  }
+
+  private async makeRequest<T>(
+    method: 'get' | 'post' | 'put' | 'delete',
+    path: string,
+    data?: any,
+    params?: Record<string, any>
+  ): Promise<T> {
+    // Apply rate limiting if configured
+    if (this.rateLimiter) {
+      await this.rateLimiter.wait();
+    }
+
+    let attempt = 1;
+
+    while (true) {
+      try {
+        const config: AxiosRequestConfig = {
+          params: params ? this.cleanParams(params) : undefined,
+        };
+
+        let response;
+        switch (method) {
+          case 'get':
+            response = await this.http.get<T>(path, config);
+            break;
+          case 'post':
+            response = await this.http.post<T>(path, data, config);
+            break;
+          case 'put':
+            response = await this.http.put<T>(path, data, config);
+            break;
+          case 'delete':
+            response = await this.http.delete<T>(path, config);
+            break;
+        }
+
+        return response.data;
+      } catch (error) {
+        if (!this.shouldRetry(error, attempt)) {
+          throw error;
+        }
+
+        const delay = this.calculateRetryDelay(attempt);
+        await this.sleep(delay);
+        attempt++;
+      }
+    }
+  }
+
+  private cleanParams(params: Record<string, any>): Record<string, any> {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null) {
+        cleaned[key] = value;
+      }
+    }
+    return Object.keys(cleaned).length > 0 ? cleaned : {};
+  }
+
+  // HTTP method wrappers
+  async get<T = unknown>(path: string, params?: Record<string, any>): Promise<T> {
+    return this.makeRequest<T>('get', path, undefined, params);
+  }
+
+  async post<T = unknown>(path: string, data?: any): Promise<T> {
+    return this.makeRequest<T>('post', path, data);
+  }
+
+  async put<T = unknown>(path: string, data?: any): Promise<T> {
+    return this.makeRequest<T>('put', path, data);
+  }
+
+  async delete<T = unknown>(path: string): Promise<T> {
+    return this.makeRequest<T>('delete', path);
+  }
+
+  // Utility methods for validation and connectivity testing
+  async validateApiKey(): Promise<ApiValidationResult> {
+    try {
+      // Try to fetch portfolios to validate the key
+      await this.get('/portfolios');
+      
+      return {
+        valid: true,
+        userInfo: {
+          email: 'Validated successfully',
+          permissions: []
+        }
+      };
+    } catch (error: any) {
+      return {
+        valid: false,
+        error: error.message || 'API key validation failed'
+      };
+    }
+  }
+
+  async testConnectivity(): Promise<boolean> {
+    try {
+      // Test connectivity without authentication
+      const response = await axios.get(`${this.http.defaults.baseURL?.replace('/v2', '')}/health`, {
+        timeout: 5000
+      });
+      return response.status === 200;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
+ * Legacy validation function for backward compatibility
  */
 export async function validateApiKey(apiKey: string, apiUrl: string = 'https://api.dwlf.co.uk'): Promise<ApiValidationResult> {
   if (!apiKey) {
@@ -27,65 +356,16 @@ export async function validateApiKey(apiKey: string, apiUrl: string = 'https://a
     };
   }
 
-  try {
-    // Try to fetch portfolios to validate the key
-    const response = await fetch(`${apiUrl}/v2/portfolios`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `ApiKey ${apiKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `HTTP ${response.status}`;
-      
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.error || errorMessage;
-      } catch {
-        // Use status text if JSON parsing fails
-        errorMessage = response.statusText || errorMessage;
-      }
-      
-      return {
-        valid: false,
-        error: errorMessage
-      };
-    }
-
-    // If we get a successful response, the API key is valid
-    await response.json(); // Consume the response
-    
-    return {
-      valid: true,
-      userInfo: {
-        email: 'Validated successfully',
-        permissions: []
-      }
-    };
-  } catch (error) {
-    return {
-      valid: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
-  }
+  const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
+  return client.validateApiKey();
 }
 
 /**
- * Test API connectivity without authentication
+ * Legacy connectivity test function for backward compatibility
  */
 export async function testApiConnectivity(apiUrl: string = 'https://api.dwlf.co.uk'): Promise<boolean> {
-  try {
-    const response = await fetch(`${apiUrl}/health`, {
-      method: 'GET'
-    });
-    
-    return response.ok;
-  } catch {
-    return false;
-  }
+  const client = new DWLFApiClient({ baseUrl: apiUrl });
+  return client.testConnectivity();
 }
 
 /**
