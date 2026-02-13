@@ -889,6 +889,7 @@ function displayWatchlist(symbols: string[], format: string = 'table'): void {
   const totalText = `Total: ${symbols.length} symbol(s)`;
   console.log(chalk.gray(`\n${totalText}`));
 }
+
 // Help command customization
 program
   .configureHelp({
