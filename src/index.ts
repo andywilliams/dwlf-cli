@@ -8,6 +8,7 @@ import { loadConfig, saveConfig, getApiKey, getApiUrl, maskApiKey, displayConfig
 import { validateApiKey, displayValidationResult } from './api-client';
 import { createSignalsCommand } from './signals';
 import { createPortfolioCommand } from './portfolio';
+import { createEventsCommand } from './events';
 
 const program = new Command();
 
@@ -147,6 +148,9 @@ program.addCommand(createSignalsCommand());
 
 // Add the portfolio command
 program.addCommand(createPortfolioCommand());
+
+// Add the events command
+program.addCommand(createEventsCommand());
 
 // Help command customization
 program
