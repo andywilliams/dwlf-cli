@@ -336,6 +336,36 @@ export class DWLFApiClient {
       return false;
     }
   }
+
+  // Market data methods
+  async getMarketData(symbols: string[], fields?: string[]): Promise<any> {
+    const params: any = {
+      symbols: symbols.join(',')
+    };
+    
+    if (fields && fields.length > 0) {
+      params.fields = fields.join(',');
+    }
+
+    return this.get('/market-data', params);
+  }
+
+  // Watchlist methods
+  async getWatchlist(): Promise<any> {
+    return this.get('/watchlist');
+  }
+
+  async addToWatchlist(symbols: string[]): Promise<any> {
+    return this.post('/watchlist', { symbols });
+  }
+
+  async removeFromWatchlist(symbols: string[]): Promise<any> {
+    return this.delete(`/watchlist?symbols=${symbols.join(',')}`);
+  }
+
+  async clearWatchlist(): Promise<any> {
+    return this.delete('/watchlist/all');
+  }
 }
 
 /**
