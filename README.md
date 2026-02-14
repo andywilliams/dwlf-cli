@@ -75,7 +75,42 @@ The CLI stores configuration in `~/.dwlf/config.json`. You can set:
 - **Output format**: Table, JSON, or compact modes
 - **Chart preferences**: Timeframes and indicators
 
+## Documentation
+
+### 📚 Comprehensive Guides
+
+- **[Command Reference](docs/COMMAND_REFERENCE.md)** - Complete reference for all commands and options
+- **[Usage Examples](docs/examples/USAGE_EXAMPLES.md)** - Practical examples for common tasks
+- **[Workflow Guide](docs/guides/WORKFLOW_EXAMPLES.md)** - End-to-end trading and analysis workflows
+- **[Troubleshooting](docs/troubleshooting/TROUBLESHOOTING.md)** - Common issues and solutions
+
+### 📖 Quick Examples
+
+**Daily trading routine:**
+```bash
+# Morning market check
+dwlf watchlist --prices
+dwlf signals --limit 10
+dwlf portfolio --period 1d
+
+# Pre-market analysis
+dwlf chart BTC-USD --indicators --volume
+dwlf events --symbol BTC-USD --days 3
+```
+
+**Strategy analysis:**
+```bash
+# Backtest a strategy
+dwlf backtest strategy_123 --start 2024-01-01 --symbols BTC-USD,ETH-USD
+
+# Monitor strategy performance
+dwlf strategies details strategy_123
+dwlf strategies signals strategy_123
+```
+
 ## Development
+
+### Getting Started
 
 ```bash
 # Clone repository
@@ -95,15 +130,52 @@ npm run build
 npm test
 ```
 
+### Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+
+- Development setup and workflow
+- Code style and testing guidelines
+- Submitting pull requests
+- Release process
+
+### Scripts
+
+```bash
+npm run build          # Build TypeScript to JavaScript
+npm run dev           # Run CLI in development mode
+npm run test          # Run test suite
+npm run lint          # Run ESLint
+npm run type-check    # Run TypeScript type checking
+npm run clean         # Clean build directory
+
+# Semantic versioning
+npm run version:patch  # Bump patch version
+npm run version:minor  # Bump minor version
+npm run version:major  # Bump major version
+```
+
 ## Requirements
 
-- Node.js >= 18.0.0
-- DWLF account with API access
+- **Node.js** >= 18.0.0
+- **npm** >= 8.0.0
+- **DWLF account** with API access
 
 ## API Documentation
 
 For detailed API documentation, visit [DWLF Documentation](https://docs.dwlf.co.uk)
 
+## Support
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/andywilliams/dwlf-cli/issues)
+- **DWLF Discord**: Community support and discussions
+- **Documentation**: [Complete CLI documentation](docs/)
+- **Examples**: [Practical usage examples](docs/examples/)
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes and version information.
+
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) file for details.
