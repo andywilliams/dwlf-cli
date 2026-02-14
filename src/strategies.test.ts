@@ -98,10 +98,10 @@ describe('Strategies Command', () => {
     });
 
     test('should require strategyId argument', () => {
-      const args = showCommand.args;
+      const args = showCommand.registeredArguments;
       expect(args).toHaveLength(1);
-      expect(args[0].name()).toBe('strategyId');
-      expect(args[0].required).toBe(true);
+      expect(args[0]?.name()).toBe('strategyId');
+      expect(args[0]?.required).toBe(true);
     });
 
     test('should have signals option with default', () => {
@@ -123,10 +123,10 @@ describe('Strategies Command', () => {
     });
 
     test('should require strategyId argument', () => {
-      const args = signalsCommand.args;
+      const args = signalsCommand.registeredArguments;
       expect(args).toHaveLength(1);
-      expect(args[0].name()).toBe('strategyId');
-      expect(args[0].required).toBe(true);
+      expect(args[0]?.name()).toBe('strategyId');
+      expect(args[0]?.required).toBe(true);
     });
 
     test('should have all required options', () => {
@@ -157,12 +157,12 @@ describe('Strategies Command', () => {
     });
 
     test('should require strategyId and symbols arguments', () => {
-      const args = activateCommand.args;
+      const args = activateCommand.registeredArguments;
       expect(args).toHaveLength(2);
-      expect(args[0].name()).toBe('strategyId');
-      expect(args[0].required).toBe(true);
-      expect(args[1].name()).toBe('symbols');
-      expect(args[1].variadic).toBe(true);
+      expect(args[0]?.name()).toBe('strategyId');
+      expect(args[0]?.required).toBe(true);
+      expect(args[1]?.name()).toBe('symbols');
+      expect(args[1]?.variadic).toBe(true);
     });
   });
 
@@ -179,12 +179,12 @@ describe('Strategies Command', () => {
     });
 
     test('should require strategyId and symbols arguments', () => {
-      const args = deactivateCommand.args;
+      const args = deactivateCommand.registeredArguments;
       expect(args).toHaveLength(2);
-      expect(args[0].name()).toBe('strategyId');
-      expect(args[0].required).toBe(true);
-      expect(args[1].name()).toBe('symbols');
-      expect(args[1].variadic).toBe(true);
+      expect(args[0]?.name()).toBe('strategyId');
+      expect(args[0]?.required).toBe(true);
+      expect(args[1]?.name()).toBe('symbols');
+      expect(args[1]?.variadic).toBe(true);
     });
   });
 
@@ -201,10 +201,10 @@ describe('Strategies Command', () => {
     });
 
     test('should require strategyId argument', () => {
-      const args = statusCommand.args;
+      const args = statusCommand.registeredArguments;
       expect(args).toHaveLength(1);
-      expect(args[0].name()).toBe('strategyId');
-      expect(args[0].required).toBe(true);
+      expect(args[0]?.name()).toBe('strategyId');
+      expect(args[0]?.required).toBe(true);
     });
 
     test('should have symbol option', () => {
