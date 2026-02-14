@@ -866,7 +866,6 @@ function displayWatchlist(symbols: string[], format: string = 'table'): void {
         // Simple list for small watchlists with enhanced formatting
         console.log();
         symbols.forEach((symbol, index) => {
-          const indicator = chalk.gray('•');
           const numbering = chalk.gray(`${(index + 1).toString().padStart(2)}.`);
           const symbolFormatted = chalk.cyan.bold(symbol);
           console.log(`  ${numbering} ${symbolFormatted}`);

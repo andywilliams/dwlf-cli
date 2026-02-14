@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 import { Command } from 'commander';
 import chalk from 'chalk';
 import * as fs from 'fs/promises';

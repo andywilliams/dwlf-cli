@@ -113,7 +113,7 @@ function generateSparkline(candles: Candle[], type: 'price' | 'volume' = 'price'
     return sparkline(values);
   } catch (error) {
     // Fallback to simple text representation if sparkline fails
-    return values.map(v => '▄').join('');
+    return values.map(() => '▄').join('');
   }
 }
 
@@ -225,7 +225,7 @@ async function fetchMarketData(
 /**
  * Display chart header with symbol info
  */
-function displayChartHeader(data: MarketDataResponse, options: ChartOptions): void {
+function displayChartHeader(data: MarketDataResponse, _options: ChartOptions): void {
   const { candles, symbol, timeframe } = data;
   const { change, changePercent } = calculatePriceChange(candles);
   

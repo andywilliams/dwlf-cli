@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { prompt } from 'enquirer';
 import ora, { Ora } from 'ora';
+import Table from 'cli-table3';
 
 /**
  * Create a clickable terminal link
@@ -236,8 +237,7 @@ export function displayTable(
     sortBy?: string;
   }
 ): void {
-  // Import moved to top of file
-  const Table = require('cli-table3');
+  // Using imported Table from top of file
   
   if (data.length === 0) {
     console.log(chalk.gray('No data to display'));

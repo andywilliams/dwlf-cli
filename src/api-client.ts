@@ -1,8 +1,6 @@
-import axios from 'axios';
-type AxiosInstance = any;
-type AxiosRequestConfig = any;
-type AxiosError = any;
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import chalk from 'chalk';
+import { MarketDataResponse, SignalResponse, StrategyResponse, BacktestResponse, EventResponse, IndicatorResponse, WatchlistResponse, PortfolioResponse, Trade, CustomEventResponse } from './types';
 
 /**
  * Normalize symbol input to DWLF's expected format (e.g. BTC-USD).
@@ -145,7 +143,7 @@ export class DWLFApiClient {
 
     // Add response interceptor for error handling
     this.http.interceptors.response.use(
-      (response: any) => response,
+      (response) => response,
       async (error: AxiosError) => {
         return this.handleError(error);
       }
@@ -217,7 +215,7 @@ export class DWLFApiClient {
     return Math.min(delay, this.retryConfig.maxDelay);
   }
 
-  private shouldRetry(error: any, attempt: number): boolean {
+  private shouldRetry(error: AxiosError, attempt: number): boolean {
     if (attempt >= this.retryConfig.maxRetries) {
       return false;
     }
@@ -235,8 +233,8 @@ export class DWLFApiClient {
   private async makeRequest<T>(
     method: 'get' | 'post' | 'put' | 'delete',
     path: string,
-    data?: any,
-    params?: Record<string, any>
+    data?: unknown,
+    params?: Record<string, unknown>
   ): Promise<T> {
     // Apply rate limiting if configured
     if (this.rateLimiter) {
@@ -245,6 +243,7 @@ export class DWLFApiClient {
 
     let attempt = 1;
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
         const config: AxiosRequestConfig = {
@@ -280,8 +279,8 @@ export class DWLFApiClient {
     }
   }
 
-  private cleanParams(params: Record<string, any>): Record<string, any> {
-    const cleaned: Record<string, any> = {};
+  private cleanParams(params: Record<string, unknown>): Record<string, unknown> {
+    const cleaned: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null) {
         cleaned[key] = value;
@@ -291,15 +290,15 @@ export class DWLFApiClient {
   }
 
   // HTTP method wrappers
-  async get<T = unknown>(path: string, params?: Record<string, any>): Promise<T> {
+  async get<T = unknown>(path: string, params?: Record<string, unknown>): Promise<T> {
     return this.makeRequest<T>('get', path, undefined, params);
   }
 
-  async post<T = unknown>(path: string, data?: any): Promise<T> {
+  async post<T = unknown>(path: string, data?: unknown): Promise<T> {
     return this.makeRequest<T>('post', path, data);
   }
 
-  async put<T = unknown>(path: string, data?: any): Promise<T> {
+  async put<T = unknown>(path: string, data?: unknown): Promise<T> {
     return this.makeRequest<T>('put', path, data);
   }
 
@@ -320,10 +319,10 @@ export class DWLFApiClient {
           permissions: []
         }
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         valid: false,
-        error: error.message || 'API key validation failed'
+        error: error instanceof Error ? error.message : 'API key validation failed'
       };
     }
   }
@@ -341,8 +340,8 @@ export class DWLFApiClient {
   }
 
   // Market data methods
-  async getMarketData(symbols: string[], fields?: string[]): Promise<any> {
-    const params: any = {
+  async getMarketData(symbols: string[], fields?: string[]): Promise<MarketDataResponse> {
+    const params: Record<string, unknown> = {
       symbols: symbols.join(',')
     };
     
@@ -354,25 +353,25 @@ export class DWLFApiClient {
   }
 
   // Watchlist methods
-  async getWatchlist(): Promise<any> {
+  async getWatchlist(): Promise<WatchlistResponse> {
     return this.get('/watchlist');
   }
 
-  async addToWatchlist(symbols: string[]): Promise<any> {
+  async addToWatchlist(symbols: string[]): Promise<WatchlistResponse> {
     return this.post('/watchlist', { symbols });
   }
 
-  async removeFromWatchlist(symbols: string[]): Promise<any> {
+  async removeFromWatchlist(symbols: string[]): Promise<WatchlistResponse> {
     return this.delete(`/watchlist?symbols=${symbols.join(',')}`);
   }
 
-  async clearWatchlist(): Promise<any> {
+  async clearWatchlist(): Promise<WatchlistResponse> {
     return this.delete('/watchlist/all');
   }
 
   // Trade management methods
-  async getTrades(filters?: { status?: 'open' | 'closed'; symbol?: string }): Promise<any> {
-    const params: any = {};
+  async getTrades(filters?: { status?: 'open' | 'closed'; symbol?: string }): Promise<Trade[]> {
+    const params: Record<string, unknown> = {};
     if (filters?.status) {
       params.status = filters.status;
     }
@@ -391,7 +390,7 @@ export class DWLFApiClient {
     takeProfit?: number;
     notes?: string;
     isPaperTrade?: boolean;
-  }): Promise<any> {
+  }): Promise<Trade> {
     return this.post('/trades', tradeData);
   }
 
@@ -399,7 +398,7 @@ export class DWLFApiClient {
     stopLoss?: number;
     takeProfit?: number;
     notes?: string;
-  }): Promise<any> {
+  }): Promise<Trade> {
     return this.put(`/trades/${tradeId}`, updates);
   }
 
@@ -407,11 +406,11 @@ export class DWLFApiClient {
     exitPrice: number;
     exitAt?: string;
     notes?: string;
-  }): Promise<any> {
+  }): Promise<Trade> {
     return this.post(`/trades/${tradeId}/close`, data);
   }
 
-  async getTrade(tradeId: string): Promise<any> {
+  async getTrade(tradeId: string): Promise<Trade> {
     return this.get(`/trades/${tradeId}`);
   }
 }
