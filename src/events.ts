@@ -67,8 +67,17 @@ export interface EventFilters {
  * Calculate human-readable time ago
  */
 export function formatTimeAgo(timestamp: string): string {
+  // Handle missing or invalid timestamps
+  if (!timestamp) return 'Unknown';
+  
   const now = new Date();
   const eventTime = new Date(timestamp);
+  
+  // Check if the date is invalid
+  if (isNaN(eventTime.getTime())) {
+    return 'Invalid date';
+  }
+  
   const diffMs = now.getTime() - eventTime.getTime();
   
   if (diffMs < 0) return 'Future';
@@ -317,8 +326,14 @@ function displayNotificationsTable(notifications: CustomEventNotification[]): vo
 function displayEventsSummary(events: Event[]): void {
   if (events.length === 0) return;
 
-  const systemEvents = events.filter(e => e.eventType);
-  const customEvents = events.filter(e => !e.eventType || e.eventName);
+  // Fix event categorization to be mutually exclusive
+  // Custom events typically have eventType="custom_event" or lack eventType entirely
+  const customEvents = events.filter(e => 
+    !e.eventType || e.eventType === 'custom_event' || (e.eventName && !e.eventType)
+  );
+  const systemEvents = events.filter(e => 
+    e.eventType && e.eventType !== 'custom_event'
+  );
   const firedEvents = events.filter(e => e.fired || e.firedAt);
   
   const symbolCounts = events.reduce((acc, event) => {
@@ -332,6 +347,12 @@ function displayEventsSummary(events: Event[]): void {
   console.log(`Total Events: ${chalk.cyan(events.length)}`);
   console.log(`System: ${chalk.green(systemEvents.length)} | Custom: ${chalk.blue(customEvents.length)}`);
   console.log(`Fired: ${chalk.yellow(firedEvents.length)}`);
+  
+  // Validate counts add up
+  const totalCategorized = systemEvents.length + customEvents.length;
+  if (totalCategorized !== events.length) {
+    console.log(chalk.gray(`⚠️  Note: ${events.length - totalCategorized} events could not be categorized`));
+  }
   
   if (topSymbol) {
     console.log(`Most Active Symbol: ${chalk.cyan(topSymbol[0])} (${topSymbol[1]} events)`);
