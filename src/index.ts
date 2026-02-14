@@ -6,6 +6,7 @@ import { prompt } from 'enquirer';
 import ora from 'ora';
 import { loadConfig, saveConfig, getApiKey, getApiUrl, maskApiKey, displayConfigStatus, isAuthenticated } from './config';
 import { validateApiKey, displayValidationResult } from './api-client';
+import { createBacktestCommand } from './backtest';
 
 const program = new Command();
 
@@ -153,6 +154,9 @@ program
   .action(() => {
     console.log(chalk.yellow('🔧 Command not yet implemented. Coming soon!'));
   });
+
+// Add the backtest command
+program.addCommand(createBacktestCommand());
 
 // Help command customization
 program
