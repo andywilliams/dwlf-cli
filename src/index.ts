@@ -21,6 +21,7 @@ import {
   PerformanceData
 } from './formatters';
 import { createSignalsCommand } from './signals';
+import { createPortfolioCommand } from './portfolio';
 
 const program = new Command();
 
@@ -752,59 +753,8 @@ tradesCmd
 // Add the signals command
 program.addCommand(createSignalsCommand());
 
-program
-  .command('portfolio')
-  .description('Portfolio overview and performance metrics')
-  .option('--format <type>', 'output format: table, compact, json, csv', 'table')
-  .option('--period <period>', 'performance period: day, week, month, year', 'month')
-  .action(async (options) => {
-    try {
-      console.log(chalk.bold.cyan('💼 Portfolio Overview'));
-      console.log(chalk.gray('Demonstrating formatting system with sample data...'));
-      console.log();
-
-      // Sample performance data to demonstrate formatting
-      const samplePerformance: PerformanceData[] = [
-        { metric: 'Total Value', value: 125450.75, period: options.period },
-        { metric: 'Total P&L', value: 8932.50, period: options.period },
-        { metric: 'Return %', value: 7.66, period: options.period },
-        { metric: 'Win Rate', value: 68.5, period: options.period },
-        { metric: 'Avg Trade', value: 245.30, period: options.period },
-        { metric: 'Max Drawdown', value: -3.2, period: options.period },
-        { metric: 'Sharpe Ratio', value: 1.84, period: options.period },
-        { metric: 'Total Trades', value: 42, period: options.period }
-      ];
-
-      const formatted = formatData(samplePerformance, 'performance', { 
-        format: options.format as OutputFormat,
-        colors: true 
-      });
-      console.log(formatted);
-
-      // Add some visual indicators
-      if (options.format === 'table') {
-        console.log();
-        console.log(chalk.bold.cyan('📈 Portfolio Health:'));
-        console.log(formatHealthStatus('healthy', 'Portfolio is performing well', true));
-        console.log(formatHealthStatus('warning', 'Consider rebalancing soon', true));
-        console.log();
-
-        // Sample progress bars
-        console.log(chalk.bold.cyan('📊 Progress Indicators:'));
-        console.log(`Year Progress: ${createProgressBar(new Date().getMonth() + 1, 12, 20, true)}`);
-        console.log(`Goal Achievement: ${createProgressBar(8932.50, 12000, 20, true)}`);
-        console.log();
-
-        // Sample sparkline (price history)
-        const samplePrices = [125000, 124500, 126000, 125800, 125450];
-        console.log(chalk.bold.cyan('📉 Recent Portfolio Value Trend:'));
-        console.log(`${formatSparkline(samplePrices, 30)} $${samplePrices[samplePrices.length - 1]?.toLocaleString() || 'N/A'}`);
-      }
-
-    } catch (error: any) {
-      console.error(chalk.red('Error fetching portfolio:'), error.message || 'Unknown error');
-    }
-  });
+// Add the portfolio command
+program.addCommand(createPortfolioCommand());
 
 program
   .command('demo')
