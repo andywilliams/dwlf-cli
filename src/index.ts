@@ -11,6 +11,7 @@ import { createPortfolioCommand } from './portfolio';
 import { createEventsCommand } from './events';
 import { createChartCommand } from './chart';
 import { createStrategiesCommand } from './strategies';
+import { createIndicatorsCommand } from './indicators';
 
 const program = new Command();
 
@@ -159,6 +160,9 @@ program.addCommand(createChartCommand());
 
 // Add the strategies command
 program.addCommand(createStrategiesCommand());
+
+// Add the indicators command
+program.addCommand(createIndicatorsCommand());
 
 // Help command customization
 program
