@@ -22,6 +22,9 @@ import {
 } from './formatters';
 import { createSignalsCommand } from './signals';
 import { createPortfolioCommand } from './portfolio';
+import { createEventsCommand } from './events';
+import { createChartCommand } from './chart';
+import { createChartCommand } from './chart';
 
 const program = new Command();
 
@@ -870,6 +873,12 @@ function displayWatchlist(symbols: string[], format: string = 'table'): void {
   const totalText = `Total: ${symbols.length} symbol(s)`;
   console.log(chalk.gray(`\n${totalText}`));
 }
+
+// Add the events command
+program.addCommand(createEventsCommand());
+
+// Add the chart command
+program.addCommand(createChartCommand());
 
 // Add the backtest command
 program.addCommand(createBacktestCommand());
