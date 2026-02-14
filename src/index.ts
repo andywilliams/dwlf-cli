@@ -8,6 +8,7 @@ import Table from 'cli-table3';
 import { loadConfig, saveConfig, getApiKey, getApiUrl, maskApiKey, displayConfigStatus, isAuthenticated } from './config';
 import { validateApiKey, displayValidationResult, DWLFApiClient, normalizeSymbol } from './api-client';
 import { createBacktestCommand } from './backtest';
+import { Candle } from './types';
 import { 
   formatData, 
   formatJSON,
@@ -192,7 +193,7 @@ program
       }
 
       // Transform API data to formatter format
-      const priceData: PriceData[] = data.candles.map((candle: any) => ({
+      const priceData: PriceData[] = data.candles.map((candle: Candle) => ({
         symbol: candle.symbol || 'N/A',
         price: Number(candle.close) || 0,
         change: candle.change ? Number(candle.change) : undefined,
@@ -210,9 +211,10 @@ program
       });
       console.log(formatted);
 
-    } catch (error: any) {
-      console.error(chalk.red('Error fetching prices:'), error.message || 'Unknown error');
-      if (error.status === 401) {
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red('Error fetching prices:'), errorMsg);
+      if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -269,9 +271,10 @@ program
           await client.addToWatchlist(normalizedSymbols);
           spinner.stop();
           console.log(chalk.green(`✅ Added ${normalizedSymbols.length} symbol(s) to watchlist:`), normalizedSymbols.join(', '));
-        } catch (error: any) {
+        } catch (error: unknown) {
           spinner.stop();
-          console.error(chalk.red('Error adding symbols:'), error.message);
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(chalk.red('Error adding symbols:'), errorMsg);
         }
       }
 
@@ -284,9 +287,10 @@ program
           await client.removeFromWatchlist(normalizedSymbols);
           spinner.stop();
           console.log(chalk.green(`✅ Removed ${normalizedSymbols.length} symbol(s) from watchlist:`), normalizedSymbols.join(', '));
-        } catch (error: any) {
+        } catch (error: unknown) {
           spinner.stop();
-          console.error(chalk.red('Error removing symbols:'), error.message);
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(chalk.red('Error removing symbols:'), errorMsg);
         }
       }
 
