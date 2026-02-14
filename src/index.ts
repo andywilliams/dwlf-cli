@@ -26,7 +26,6 @@ import { createEventsCommand } from './events';
 import { createChartCommand } from './chart';
 import { createStrategiesCommand } from './strategies';
 import { createIndicatorsCommand } from './indicators';
->>>>>>> f90d436 (feat: implement strategies command suite)
 
 const program = new Command();
 
@@ -770,7 +769,6 @@ program.addCommand(createChartCommand());
 // Add the strategies command
 program.addCommand(createStrategiesCommand());
 
-<<<<<<< HEAD
 // Add the indicators command
 program.addCommand(createIndicatorsCommand());
 
