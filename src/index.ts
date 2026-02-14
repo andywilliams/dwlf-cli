@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { prompt } from 'enquirer';
 import ora from 'ora';
-import { loadConfig, saveConfig, getApiKey, getApiUrl, maskApiKey, displayConfigStatus, isAuthenticated } from './config';
+import { loadConfig, saveConfig, getApiKey, getApiUrl, maskApiKey, displayConfigStatus, isAuthenticated, resetConfig, setConfigValue, getConfigValue } from './config';
 import { validateApiKey, displayValidationResult } from './api-client';
 import { createSignalsCommand } from './signals';
 import { createPortfolioCommand } from './portfolio';
@@ -120,6 +120,91 @@ program
 
     } catch (error) {
       console.error(chalk.red('Error during login:'), error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+// Config command with subcommands
+const configCommand = program
+  .command('config')
+  .description('Manage CLI configuration');
+
+configCommand
+  .command('show')
+  .description('Display current configuration')
+  .action(async () => {
+    try {
+      await displayConfigStatus();
+    } catch (error) {
+      console.error(chalk.red('Error displaying config:'), error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+configCommand
+  .command('list-keys')
+  .description('List available configuration keys')
+  .action(async () => {
+    console.log(chalk.bold('\n📋 Available Configuration Keys:'));
+    console.log('  apiKey         - Your DWLF API key');
+    console.log('  apiUrl         - API base URL (default: https://api.dwlf.co.uk)');
+    console.log('  defaultSymbols - Comma-separated list of default symbols');
+    console.log('  defaultTimeframe - Default timeframe (1m, 5m, 15m, 1h, 4h, daily, weekly, monthly)');
+    console.log('  outputFormat   - Output format (table, json, csv)');
+  });
+
+configCommand
+  .command('set <key> <value>')
+  .description('Set a configuration value')
+  .action(async (key: string, value: string) => {
+
+    try {
+      await setConfigValue(key as keyof import('./config').DWLFConfig, value);
+      console.log(chalk.green(`✅ Configuration updated: ${key} = ${value}`));
+      
+      // Show updated config
+      const updatedValue = await getConfigValue(key as keyof import('./config').DWLFConfig);
+      if (key === 'apiKey' && typeof updatedValue === 'string') {
+        console.log(chalk.gray(`Current value: ${maskApiKey(updatedValue)}`));
+      } else if (Array.isArray(updatedValue)) {
+        console.log(chalk.gray(`Current value: ${updatedValue.join(', ')}`));
+      } else {
+        console.log(chalk.gray(`Current value: ${updatedValue}`));
+      }
+    } catch (error) {
+      console.error(chalk.red('Error setting config:'), error instanceof Error ? error.message : 'Unknown error');
+      console.log(chalk.gray('\nRun `dwlf config list-keys` to see available keys and formats.'));
+      process.exit(1);
+    }
+  });
+
+configCommand
+  .command('reset')
+  .description('Reset configuration to defaults (keeping API key)')
+  .option('--confirm', 'Skip confirmation prompt')
+  .action(async (options) => {
+    try {
+      if (!options.confirm) {
+        const { proceed }: { proceed: boolean } = await prompt({
+          type: 'confirm',
+          name: 'proceed',
+          message: 'This will reset all configuration to defaults (API key will be preserved). Continue?',
+          initial: false
+        });
+
+        if (!proceed) {
+          console.log(chalk.yellow('Configuration reset cancelled.'));
+          return;
+        }
+      }
+
+      await resetConfig();
+      console.log(chalk.green('✅ Configuration reset to defaults.'));
+      
+      // Show the reset config
+      await displayConfigStatus();
+    } catch (error) {
+      console.error(chalk.red('Error resetting config:'), error instanceof Error ? error.message : 'Unknown error');
       process.exit(1);
     }
   });
