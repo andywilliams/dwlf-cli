@@ -13,6 +13,8 @@ module.exports = {
     '^.+\\.ts$': ['ts-jest', {}]
   },
   moduleNameMapper: {
-    '^chalk$': '<rootDir>/__mocks__/chalk.js'
+    '^chalk$': '<rootDir>/__mocks__/chalk.js',
+    '^ora$': '<rootDir>/__mocks__/ora.js',
+    '^cli-table3$': '<rootDir>/__mocks__/cli-table3.js'
   }
 };
