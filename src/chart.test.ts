@@ -60,9 +60,9 @@ describe('Chart Command', () => {
   beforeEach(() => {
     mockConsoleLog = jest.spyOn(console, 'log').mockImplementation(() => {});
     mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
-    mockProcessExit = jest.spyOn(process, 'exit').mockImplementation((code?: number) => {
+    mockProcessExit = jest.spyOn(process, 'exit').mockImplementation(((code?: string | number | null | undefined) => {
       throw new Error(`Process exited with code ${code}`);
-    });
+    }) as any);
     jest.clearAllMocks();
   });
 
@@ -81,11 +81,11 @@ describe('Chart Command', () => {
 
   test('should have required symbol argument', () => {
     const command = createChartCommand();
-    const args = command.args;
+    const args = command.registeredArguments;
     
     expect(args).toHaveLength(1);
-    expect(args[0].name()).toBe('symbol');
-    expect(args[0].required).toBe(true);
+    expect(args[0]?.name()).toBe('symbol');
+    expect(args[0]?.required).toBe(true);
   });
 
   test('should have all expected options', () => {
@@ -114,7 +114,7 @@ describe('Chart Command', () => {
     try {
       await command.parseAsync(['node', 'test', 'chart', 'BTC-USD', '--timeframe', 'invalid'], { from: 'user' });
     } catch (error) {
-      expect(error.message).toContain('Process exited with code 1');
+      expect((error as Error).message).toContain('Process exited with code 1');
     }
     
     expect(mockConsoleError).toHaveBeenCalledWith(
@@ -133,7 +133,7 @@ describe('Chart Command', () => {
     try {
       await command.parseAsync(['node', 'test', 'chart', 'BTC-USD'], { from: 'user' });
     } catch (error) {
-      expect(error.message).toContain('Process exited with code 1');
+      expect((error as Error).message).toContain('Process exited with code 1');
     }
     
     expect(mockConsoleLog).toHaveBeenCalledWith(
@@ -158,7 +158,7 @@ describe('Chart Command', () => {
     try {
       await command.parseAsync(['node', 'test', 'chart', 'BTC-USD'], { from: 'user' });
     } catch (error) {
-      expect(error.message).toContain('Process exited with code 1');
+      expect((error as Error).message).toContain('Process exited with code 1');
     }
     
     expect(mockConsoleError).toHaveBeenCalledWith(
