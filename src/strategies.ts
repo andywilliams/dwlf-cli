@@ -286,7 +286,7 @@ export function createStrategiesCommand(): Command {
           params.mine = true;
         }
 
-        const response = await client.get<StrategiesResponse>('/strategies', params);
+        const response = await client.get<StrategiesResponse>('/v2/visual-strategies', params);
         spinner.stop();
 
         console.log(chalk.bold.cyan('📊 Available Strategies\n'));
@@ -321,7 +321,7 @@ export function createStrategiesCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new DWLFApiClient({ apiKey: apiKey!, baseUrl: apiUrl });
 
-        const strategy = await client.get<StrategyDetails>(`/strategies/${strategyId}`, {
+        const strategy = await client.get<StrategyDetails>(`/v2/visual-strategies/${strategyId}`, {
           includeSignals: true,
           signalsLimit: parseInt(options.signals)
         });
@@ -446,7 +446,7 @@ export function createStrategiesCommand(): Command {
         // Activate for each symbol
         const results = await Promise.allSettled(
           normalizedSymbols.map(symbol =>
-            client.post(`/strategies/${strategyId}/activate`, { symbol })
+            client.post(`/v2/strategy-symbols`, { strategyId, symbol })
           )
         );
 
@@ -493,7 +493,7 @@ export function createStrategiesCommand(): Command {
         // Deactivate for each symbol
         const results = await Promise.allSettled(
           normalizedSymbols.map(symbol =>
-            client.post(`/strategies/${strategyId}/deactivate`, { symbol })
+            client.delete(`/v2/strategy-symbols/${strategyId}/${symbol}`)
           )
         );
 
@@ -541,7 +541,7 @@ export function createStrategiesCommand(): Command {
         }
 
         const response = await client.get<{ activations: StrategyActivation[] }>(
-          `/strategies/${strategyId}/activations`,
+          `/v2/strategy-symbols/strategy/${strategyId}`,
           params
         );
         
