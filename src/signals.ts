@@ -120,15 +120,7 @@ function formatPercentage(pct: number | undefined): string {
   return pct >= 0 ? chalk.green(formatted) : chalk.red(formatted);
 }
 
-/**
- * Format R-multiple with color coding
- */
-function formatRMultiple(rMultiple: number | undefined): string {
-  if (rMultiple === undefined) return '-';
-  
-  const formatted = (rMultiple >= 0 ? '+' : '') + rMultiple.toFixed(2) + 'R';
-  return rMultiple >= 0 ? chalk.green(formatted) : chalk.red(formatted);
-}
+// Removed unused formatRMultiple function
 
 /**
  * Fetch signals from the API

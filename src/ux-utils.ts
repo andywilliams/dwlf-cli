@@ -236,6 +236,7 @@ export function displayTable(
     sortBy?: string;
   }
 ): void {
+  // Import moved to top of file
   const Table = require('cli-table3');
   
   if (data.length === 0) {

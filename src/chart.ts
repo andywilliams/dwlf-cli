@@ -1,12 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import Table from 'cli-table3';
+// Removed unused Table import
 import ora from 'ora';
 import { DWLFApiClient } from './api-client';
 import { getApiKey, getApiUrl, isAuthenticated } from './config';
 
 // Import sparkline for ASCII chart generation
-const sparkline = require('sparkline');
+import * as sparkline from 'sparkline';
 
 export interface Candle {
   timestamp: string;

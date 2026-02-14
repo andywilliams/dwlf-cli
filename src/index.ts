@@ -17,7 +17,6 @@ import {
   OutputFormat,
   PriceData,
   TradeData,
-  SignalData,
   PerformanceData
 } from './formatters';
 import { createSignalsCommand } from './signals';
@@ -27,7 +26,7 @@ import { createChartCommand } from './chart';
 import { createStrategiesCommand } from './strategies';
 import { createIndicatorsCommand } from './indicators';
 import { createCompletionCommand } from './completion';
-import { displayError, displaySuccess, createLink, displayHelp, confirmAction, displayWarning } from './ux-utils';
+// Removed unused imports from ux-utils
 
 const program = new Command();
 

@@ -16,7 +16,7 @@ const KNOWN_STOCKS = new Set([
 ]);
 
 function normalizeSymbol(input: string): string {
-  let s = input.trim().toUpperCase();
+  const s = input.trim().toUpperCase();
 
   // Already has separator: BTC/USD → BTC-USD, BTC-USD stays
   if (s.includes('/')) {
@@ -183,27 +183,7 @@ export interface BacktestSummary {
   recentBacktests: BacktestRequest[];
 }
 
-/**
- * Format performance metrics for display
- */
-function formatMetrics(metrics: BacktestMetrics): string[] {
-  const winRate = `${(metrics.winRate * 100).toFixed(1)}%`;
-  const totalReturn = metrics.totalReturn >= 0 
-    ? chalk.green(`+${metrics.totalReturn.toFixed(2)}%`)
-    : chalk.red(`${metrics.totalReturn.toFixed(2)}%`);
-  const sharpe = metrics.sharpeRatio ? metrics.sharpeRatio.toFixed(2) : 'N/A';
-  const maxDD = chalk.red(`${metrics.maxDrawdown.toFixed(2)}%`);
-  const profitFactor = metrics.profitFactor.toFixed(2);
-  
-  return [
-    `${metrics.totalTrades}`,
-    winRate,
-    totalReturn,
-    sharpe,
-    maxDD,
-    profitFactor
-  ];
-}
+// Removed unused formatMetrics function
 
 /**
  * Display backtest requests in a table

@@ -17,7 +17,7 @@ const KNOWN_STOCKS = new Set([
 ]);
 
 export function normalizeSymbol(input: string): string {
-  let s = input.trim().toUpperCase();
+  const s = input.trim().toUpperCase();
 
   // Already has separator: BTC/USD → BTC-USD, BTC-USD stays
   if (s.includes('/')) {
