@@ -45,6 +45,30 @@ export interface SignalFilters {
 }
 
 /**
+ * Transform API signal to CLI signal interface
+ */
+function transformApiSignal(apiSignal: any): Signal {
+  return {
+    signalId: apiSignal.signalId,
+    symbol: apiSignal.symbol,
+    strategy: {
+      strategyId: apiSignal.strategy || apiSignal.strategyDetails?.visualStrategyId || 'unknown',
+      name: apiSignal.strategyDescription || apiSignal.strategyDetails?.strategyName || 'Unknown Strategy'
+    },
+    signalType: 'LONG', // API doesn't seem to have this field, defaulting to LONG
+    entryPrice: apiSignal.initialPrice || 0,
+    currentPrice: apiSignal.currentPrice,
+    stopLoss: apiSignal.stopLossLevel,
+    takeProfit: apiSignal.target3R, // Use 3R target as take profit
+    riskRewardRatio: apiSignal.currentRR,
+    pnlPct: apiSignal.percentageGain,
+    status: apiSignal.active === 'true' || apiSignal.active === true ? 'ACTIVE' : 'CLOSED',
+    generatedAt: apiSignal.createdAt || apiSignal.date,
+    closedAt: apiSignal.closedAt || apiSignal.exitDate
+  };
+}
+
+/**
  * Calculate human-readable signal age
  */
 function formatSignalAge(generatedAt: string): string {
@@ -122,17 +146,29 @@ async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}):
     if (filters.page) params.page = filters.page;
 
     // Fetch from signals API endpoint
-    const response = await client.get<SignalsResponse>('/signals', params);
+    const apiResponse = await client.get<any>('/v2/user/trade-signals', params);
     
-    // Add calculated signal age to each signal
-    if (response.signals) {
-      response.signals = response.signals.map(signal => ({
+    // Transform API response to CLI format
+    const signals = apiResponse.signals ? apiResponse.signals.map((apiSignal: any) => {
+      const signal = transformApiSignal(apiSignal);
+      return {
         ...signal,
         signalAge: formatSignalAge(signal.generatedAt)
-      }));
-    }
+      };
+    }) : [];
     
-    return response;
+    // Transform pagination structure
+    const pagination = apiResponse.pagination ? {
+      total: apiResponse.pagination.total || apiResponse.total || 0,
+      page: Math.floor((apiResponse.pagination.offset || 0) / (params.limit || 50)) + 1,
+      limit: params.limit || 50,
+      hasMore: apiResponse.pagination.hasMore || false
+    } : undefined;
+    
+    return {
+      signals,
+      pagination
+    } as SignalsResponse;
   } catch (error: any) {
     throw new Error(`Failed to fetch signals: ${error.message}`);
   }
@@ -143,7 +179,8 @@ async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}):
  */
 async function fetchSignalDetails(client: DWLFApiClient, signalId: string): Promise<Signal> {
   try {
-    const signal = await client.get<Signal>(`/signals/${signalId}`);
+    const apiSignal = await client.get<any>(`/v2/trade-signals/${signalId}`);
+    const signal = transformApiSignal(apiSignal);
     return {
       ...signal,
       signalAge: formatSignalAge(signal.generatedAt)

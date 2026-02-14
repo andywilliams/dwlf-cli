@@ -1,4 +1,7 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import axios from 'axios';
+type AxiosInstance = any;
+type AxiosRequestConfig = any;
+type AxiosError = any;
 import chalk from 'chalk';
 
 /**
@@ -142,7 +145,7 @@ export class DWLFApiClient {
 
     // Add response interceptor for error handling
     this.http.interceptors.response.use(
-      (response) => response,
+      (response: any) => response,
       async (error: AxiosError) => {
         return this.handleError(error);
       }
@@ -251,16 +254,16 @@ export class DWLFApiClient {
         let response;
         switch (method) {
           case 'get':
-            response = await this.http.get<T>(path, config);
+            response = await this.http.get(path, config);
             break;
           case 'post':
-            response = await this.http.post<T>(path, data, config);
+            response = await this.http.post(path, data, config);
             break;
           case 'put':
-            response = await this.http.put<T>(path, data, config);
+            response = await this.http.put(path, data, config);
             break;
           case 'delete':
-            response = await this.http.delete<T>(path, config);
+            response = await this.http.delete(path, config);
             break;
         }
 
