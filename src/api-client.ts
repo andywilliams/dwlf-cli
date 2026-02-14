@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import chalk from 'chalk';
-import { MarketDataResponse, SignalResponse, StrategyResponse, BacktestResponse, EventResponse, IndicatorResponse, WatchlistResponse, PortfolioResponse, Trade, CustomEventResponse } from './types';
+import { MarketDataResponse, WatchlistResponse, Trade } from './types';
 
 /**
  * Normalize symbol input to DWLF's expected format (e.g. BTC-USD).

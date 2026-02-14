@@ -225,7 +225,7 @@ async function fetchMarketData(
 /**
  * Display chart header with symbol info
  */
-function displayChartHeader(data: MarketDataResponse, _options: ChartOptions): void {
+function displayChartHeader(data: MarketDataResponse): void {
   const { candles, symbol, timeframe } = data;
   const { change, changePercent } = calculatePriceChange(candles);
   
@@ -388,7 +388,7 @@ export function createChartCommand(): Command {
       }
       
       // Display chart header
-      displayChartHeader(data, chartOptions);
+      displayChartHeader(data);
       
       // Display based on output preference
       if (chartOptions.output === 'browser') {
