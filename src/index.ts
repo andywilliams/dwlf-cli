@@ -26,6 +26,8 @@ import { createEventsCommand } from './events';
 import { createChartCommand } from './chart';
 import { createStrategiesCommand } from './strategies';
 import { createIndicatorsCommand } from './indicators';
+import { createCompletionCommand } from './completion';
+import { displayError, displaySuccess, createLink, displayHelp, confirmAction, displayWarning } from './ux-utils';
 
 const program = new Command();
 
@@ -774,6 +776,9 @@ program.addCommand(createIndicatorsCommand());
 
 // Add the backtest command
 program.addCommand(createBacktestCommand());
+
+// Add the completion command
+program.addCommand(createCompletionCommand());
 
 program
   .command('demo')
