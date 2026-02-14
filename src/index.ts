@@ -25,6 +25,8 @@ import { createPortfolioCommand } from './portfolio';
 import { createEventsCommand } from './events';
 import { createChartCommand } from './chart';
 import { createStrategiesCommand } from './strategies';
+import { createIndicatorsCommand } from './indicators';
+import { createIndicatorsCommand } from './indicators';
 
 const program = new Command();
 
@@ -883,8 +885,12 @@ program.addCommand(createChartCommand());
 // Add the strategies command
 program.addCommand(createStrategiesCommand());
 
+// Add the indicators command
+program.addCommand(createIndicatorsCommand());
+
 // Add the backtest command
 program.addCommand(createBacktestCommand());
+>>>>>>> 9b04300 (Add indicators command for technical analysis)
 
 // Help command customization
 program
