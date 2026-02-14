@@ -26,11 +26,11 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.13.5",
-    "chalk": "^5.3.0",
+    "chalk": "^4.1.2",
     "cli-table3": "^0.6.3",
     "commander": "^12.0.0",
     "enquirer": "^2.4.1",
-    "ora": "^8.0.1",
+    "ora": "^5.4.1",
     "sparkline": "^0.2.0"
   },
   "devDependencies": {
