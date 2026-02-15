@@ -217,8 +217,9 @@ async function fetchMarketData(
       startDate: params.startDate || '',
       endDate: params.endDate || ''
     };
-  } catch (error: any) {
-    throw new Error(`Failed to fetch market data for ${symbol}: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to fetch market data for ${symbol}: ${message}`);
   }
 }
 
@@ -357,8 +358,9 @@ export function createChartCommand(): Command {
       let timeframe: Timeframe;
       try {
         timeframe = validateTimeframe(options.timeframe);
-      } catch (error: any) {
-        console.error(chalk.red('Error:'), error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown validation error';
+        console.error(chalk.red('Error:'), message);
         process.exit(1);
       }
       
@@ -381,9 +383,10 @@ export function createChartCommand(): Command {
       try {
         data = await fetchMarketData(client, chartOptions.symbol, timeframe, options.period);
         spinner.stop();
-      } catch (error: any) {
+      } catch (error: unknown) {
         spinner.stop();
-        console.error(chalk.red('Error:'), error.message);
+        const message = error instanceof Error ? error.message : 'Unknown data fetch error';
+        console.error(chalk.red('Error:'), message);
         process.exit(1);
       }
       
@@ -410,8 +413,9 @@ export function createChartCommand(): Command {
         console.log(chalk.dim(`\nTip: Use --stats for detailed statistics, --volume for volume chart, --browser for full web chart`));
       }
       
-    } catch (error: any) {
-      console.error(chalk.red('Unexpected error:'), error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown unexpected error';
+      console.error(chalk.red('Unexpected error:'), message);
       process.exit(1);
     }
   });

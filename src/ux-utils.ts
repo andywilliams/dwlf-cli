@@ -136,13 +136,21 @@ export async function selectMultiple(
     initial?: string[];
   }
 ): Promise<string[]> {
+  interface PromptConfig {
+    type: string;
+    name: string;
+    message: string;
+    choices: Array<string | { name: string; value: string; hint?: string }>;
+    initial?: string | string[];
+  }
+
   const { selected }: { selected: string[] } = await prompt({
     type: 'multiselect',
     name: 'selected',
     message,
     choices,
     initial: options?.initial
-  } as any);
+  } as PromptConfig);
   
   return selected;
 }
@@ -166,7 +174,7 @@ export async function selectOne(
     message,
     choices,
     initial: options?.initial
-  } as any);
+  } as PromptConfig);
   
   return selected;
 }
@@ -230,7 +238,7 @@ export function formatFileSize(bytes: number): string {
  * Display a table with enhanced formatting
  */
 export function displayTable(
-  data: Array<Record<string, any>>,
+  data: Array<Record<string, unknown>>,
   options?: {
     columns?: string[];
     maxWidth?: number;

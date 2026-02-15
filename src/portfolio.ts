@@ -343,8 +343,9 @@ export function createPortfolioCommand(): Command {
 
         await displayPortfolios(response.portfolios, options.compact);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch portfolios:'), error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red('❌ Failed to fetch portfolios:'), message);
         process.exit(1);
       }
     });
@@ -422,8 +423,9 @@ export function createPortfolioCommand(): Command {
           console.log(chalk.yellow('📊 No holdings found.'));
         }
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch portfolio details:'), error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red('❌ Failed to fetch portfolio details:'), message);
         process.exit(1);
       }
     });
@@ -447,7 +449,7 @@ export function createPortfolioCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new DWLFApiClient({ apiKey: apiKey!, baseUrl: apiUrl });
 
-        const params: Record<string, any> = {};
+        const params: Record<string, string | number> = {};
         if (options.status) params.status = options.status.toLowerCase();
         if (options.limit) params.limit = options.limit;
 
@@ -482,8 +484,9 @@ export function createPortfolioCommand(): Command {
         console.log(chalk.bold('📋 Trade History'));
         await displayTrades(response.trades, options.compact);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch trades:'), error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red('❌ Failed to fetch trades:'), message);
         process.exit(1);
       }
     });
@@ -531,8 +534,9 @@ export function createPortfolioCommand(): Command {
         console.log(chalk.yellow('📊 Portfolio performance analysis coming soon...'));
         console.log(chalk.gray('This will include metrics like Sharpe ratio, max drawdown, volatility, etc.'));
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch performance data:'), error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red('❌ Failed to fetch performance data:'), message);
         process.exit(1);
       }
     });

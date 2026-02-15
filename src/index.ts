@@ -386,7 +386,12 @@ tradesCmd
       const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
 
       // Prepare filters
-      const filters: any = {};
+      interface TradeFilters {
+        status?: string;
+        symbol?: string;
+        limit?: number;
+      }
+      const filters: TradeFilters = {};
       if (options.status && options.status !== 'all') {
         filters.status = options.status;
       }
@@ -408,7 +413,26 @@ tradesCmd
       const trades = tradesResponse.trades;
       
       // Transform API data to formatter format
-      const tradeData: TradeData[] = trades.map((trade: any) => ({
+      interface ApiTrade {
+        tradeId?: string;
+        id?: string;
+        symbol: string;
+        side: string;
+        quantity: string | number;
+        entryPrice: string | number;
+        exitPrice?: string | number;
+        openedAt: string;
+        closedAt?: string;
+        status: string;
+        pnlAbs?: string | number;
+        pnlPct?: string | number;
+        rMultiple?: string | number;
+        stopLoss?: string | number;
+        takeProfit?: string | number;
+        notes?: string;
+        isPaperTrade?: boolean;
+      }
+      const tradeData: TradeData[] = trades.map((trade: ApiTrade) => ({
         id: trade.tradeId || trade.id,
         symbol: trade.symbol,
         side: trade.side,
@@ -497,7 +521,17 @@ tradesCmd
         return;
       }
 
-      const tradeData: any = {
+      interface NewTradeData {
+        symbol: string;
+        side: 'buy' | 'sell';
+        quantity: number;
+        entryPrice: number;
+        stopLoss?: number;
+        takeProfit?: number;
+        notes?: string;
+        isPaperTrade: boolean;
+      }
+      const tradeData: NewTradeData = {
         symbol: normalizeSymbol(options.symbol),
         side: side as 'buy' | 'sell',
         quantity,
@@ -560,7 +594,11 @@ tradesCmd
       const apiUrl = await getApiUrl();
       const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
 
-      const closeData: any = {
+      interface CloseTradeData {
+        exitPrice: number;
+        exitAt: string;
+      }
+      const closeData: CloseTradeData = {
         exitPrice,
         exitAt: new Date().toISOString()
       };
@@ -582,7 +620,11 @@ tradesCmd
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(chalk.red('Error closing trade:'), errorMessage);
-      if (error && typeof error === 'object' && 'status' in error && (error as any).status === 401) {
+      interface ApiError {
+        status?: number;
+        isApiError?: boolean;
+      }
+      if (error && typeof error === 'object' && 'status' in error && (error as ApiError).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -612,7 +654,12 @@ tradesCmd
         return;
       }
 
-      const updates: any = {};
+      interface TradeUpdates {
+        stopLoss?: number;
+        takeProfit?: number;
+        notes?: string;
+      }
+      const updates: TradeUpdates = {};
       
       if (options.stop) {
         const stopLoss = parseFloat(options.stop);
@@ -651,7 +698,11 @@ tradesCmd
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(chalk.red('Error updating trade:'), errorMessage);
-      if (error && typeof error === 'object' && 'status' in error && (error as any).status === 401) {
+      interface ApiError {
+        status?: number;
+        isApiError?: boolean;
+      }
+      if (error && typeof error === 'object' && 'status' in error && (error as ApiError).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -738,7 +789,11 @@ tradesCmd
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(chalk.red('Error fetching trade details:'), errorMessage);
-      if (error && typeof error === 'object' && 'status' in error && (error as any).status === 401) {
+      interface ApiError {
+        status?: number;
+        isApiError?: boolean;
+      }
+      if (error && typeof error === 'object' && 'status' in error && (error as ApiError).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }

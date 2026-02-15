@@ -155,9 +155,14 @@ export class DWLFApiClient {
     const message = this.extractErrorMessage(error);
 
     // Create a structured error
-    const apiError = new Error(`API Error: ${message}`);
-    (apiError as any).status = status;
-    (apiError as any).isApiError = true;
+    interface ApiError extends Error {
+      status?: number;
+      isApiError: boolean;
+    }
+    
+    const apiError = new Error(`API Error: ${message}`) as ApiError;
+    apiError.status = status;
+    apiError.isApiError = true;
     
     throw apiError;
   }
@@ -172,7 +177,7 @@ export class DWLFApiClient {
     }
 
     const status = error.response?.status;
-    const data = error.response?.data as any;
+    const data = error.response?.data as unknown;
 
     if (status === 401) {
       return 'Invalid API key. Please check your authentication credentials.';
