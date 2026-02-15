@@ -44,6 +44,38 @@ export interface Candle {
   volume: number;
 }
 
+export interface ApiSignal {
+  signalId: string;
+  symbol: string;
+  strategy?: string;
+  strategyDetails?: {
+    visualStrategyId?: string;
+    strategyName?: string;
+  };
+  strategyDescription?: string;
+  initialPrice?: number;
+  currentPrice?: number;
+  stopLossLevel?: number;
+  target3R?: number;
+  currentRR?: number;
+  percentageGain?: number;
+  active?: string | boolean;
+  createdAt?: string;
+  date?: string;
+  closedAt?: string;
+  exitDate?: string;
+}
+
+export interface SignalsApiResponse {
+  signals: ApiSignal[];
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    hasMore: boolean;
+  };
+}
+
 // Type declarations for modules without types
 declare module 'sparkline' {
   function sparkline(data: number[]): string;
