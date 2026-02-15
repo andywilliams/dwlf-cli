@@ -19,7 +19,7 @@ export interface Event {
   notifyOnFire?: boolean;
   fired?: boolean;
   firedAt?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CustomEventNotification {
@@ -30,7 +30,7 @@ export interface CustomEventNotification {
   firedAt: string;
   price: number;
   significance?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface EventsResponse {
@@ -148,15 +148,16 @@ function formatEventType(eventType: string | undefined, eventName?: string): str
  */
 async function fetchSystemEvents(client: DWLFApiClient, filters: EventFilters = {}): Promise<Event[]> {
   try {
-    const params: Record<string, any> = {};
+    const params: Record<string, string | number> = {};
     
     if (filters.symbol) params.symbol = filters.symbol.toUpperCase();
     if (filters.limit) params.limit = filters.limit;
     
     const response = await client.get<EventsResponse>('/events', params);
     return response.events || [];
-  } catch (error: any) {
-    throw new Error(`Failed to fetch system events: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to fetch system events: ${message}`);
   }
 }
 
@@ -165,7 +166,7 @@ async function fetchSystemEvents(client: DWLFApiClient, filters: EventFilters = 
  */
 async function fetchCustomEvents(client: DWLFApiClient, filters: EventFilters = {}): Promise<Event[]> {
   try {
-    const params: Record<string, any> = {
+    const params: Record<string, string | number> = {
       type: 'custom_event',
       scope: 'user'
     };
@@ -175,8 +176,9 @@ async function fetchCustomEvents(client: DWLFApiClient, filters: EventFilters = 
     
     const response = await client.get<EventsResponse>('/events', params);
     return response.events || [];
-  } catch (error: any) {
-    throw new Error(`Failed to fetch custom events: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to fetch custom events: ${message}`);
   }
 }
 
@@ -188,8 +190,9 @@ async function fetchCustomEventNotifications(client: DWLFApiClient, days: number
     const params = { days };
     const response = await client.get<{ notifications: CustomEventNotification[] }>('/custom-events/notifications', params);
     return response.notifications || [];
-  } catch (error: any) {
-    throw new Error(`Failed to fetch custom event notifications: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to fetch custom event notifications: ${message}`);
   }
 }
 
@@ -420,9 +423,10 @@ export function createEventsCommand(): Command {
           if (notifications.length > 0) {
             console.log(chalk.dim(`\nShowing notifications for events that fired. Use --type custom to see all custom events.`));
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           spinner.stop();
-          console.error(chalk.red('Error:'), error.message);
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          console.error(chalk.red('Error:'), message);
           process.exit(1);
         }
         return;
@@ -463,9 +467,10 @@ export function createEventsCommand(): Command {
         }
         
         spinner.stop();
-      } catch (error: any) {
+      } catch (error: unknown) {
         spinner.stop();
-        console.error(chalk.red('Error:'), error.message);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red('Error:'), message);
         process.exit(1);
       }
       
@@ -495,8 +500,9 @@ export function createEventsCommand(): Command {
         console.log(chalk.dim(`\nTry: --type all --days 30 to expand the search`));
       }
 
-    } catch (error: any) {
-      console.error(chalk.red('Unexpected error:'), error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red('Unexpected error:'), message);
       process.exit(1);
     }
   });

@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { prompt } from 'enquirer';
 import ora, { Ora } from 'ora';
+import Table from 'cli-table3';
 
 /**
  * Create a clickable terminal link
@@ -141,6 +142,7 @@ export async function selectMultiple(
     message,
     choices,
     initial: options?.initial
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
   
   return selected;
@@ -165,6 +167,7 @@ export async function selectOne(
     message,
     choices,
     initial: options?.initial
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
   
   return selected;
@@ -229,14 +232,14 @@ export function formatFileSize(bytes: number): string {
  * Display a table with enhanced formatting
  */
 export function displayTable(
-  data: Array<Record<string, any>>,
+  data: Array<Record<string, unknown>>,
   options?: {
     columns?: string[];
     maxWidth?: number;
     sortBy?: string;
   }
 ): void {
-  const Table = require('cli-table3');
+  // Using imported Table from top of file
   
   if (data.length === 0) {
     console.log(chalk.gray('No data to display'));
@@ -268,7 +271,7 @@ export function displayTable(
       head: [],
       border: ['gray']
     },
-    colWidths: options?.maxWidth ? undefined : columns.map(() => undefined),
+    colWidths: options?.maxWidth ? undefined : undefined,
     wordWrap: true
   });
   

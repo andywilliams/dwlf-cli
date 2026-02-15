@@ -16,7 +16,7 @@ const KNOWN_STOCKS = new Set([
 ]);
 
 function normalizeSymbol(input: string): string {
-  let s = input.trim().toUpperCase();
+  const s = input.trim().toUpperCase();
 
   // Already has separator: BTC/USD → BTC-USD, BTC-USD stays
   if (s.includes('/')) {
@@ -53,7 +53,7 @@ class SimpleApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private async request(method: string, endpoint: string, body?: any): Promise<any> {
+  private async request<T = unknown>(method: string, endpoint: string, body?: unknown): Promise<T> {
     const url = `${this.baseUrl}/v2${endpoint}`;
     
     const options: RequestInit = {
@@ -85,10 +85,10 @@ class SimpleApiClient {
       throw new Error(errorMessage);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
-  async get(endpoint: string, params?: any): Promise<any> {
+  async get<T = unknown>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
     let url = endpoint;
     if (params) {
       const searchParams = new URLSearchParams();
@@ -102,15 +102,15 @@ class SimpleApiClient {
         url += `?${queryString}`;
       }
     }
-    return this.request('GET', url);
+    return this.request<T>('GET', url);
   }
 
-  async post(endpoint: string, body?: any): Promise<any> {
-    return this.request('POST', endpoint, body);
+  async post<T = unknown>(endpoint: string, body?: unknown): Promise<T> {
+    return this.request<T>('POST', endpoint, body);
   }
 
-  async delete(endpoint: string): Promise<any> {
-    return this.request('DELETE', endpoint);
+  async delete<T = unknown>(endpoint: string): Promise<T> {
+    return this.request<T>('DELETE', endpoint);
   }
 }
 
@@ -183,27 +183,7 @@ export interface BacktestSummary {
   recentBacktests: BacktestRequest[];
 }
 
-/**
- * Format performance metrics for display
- */
-function formatMetrics(metrics: BacktestMetrics): string[] {
-  const winRate = `${(metrics.winRate * 100).toFixed(1)}%`;
-  const totalReturn = metrics.totalReturn >= 0 
-    ? chalk.green(`+${metrics.totalReturn.toFixed(2)}%`)
-    : chalk.red(`${metrics.totalReturn.toFixed(2)}%`);
-  const sharpe = metrics.sharpeRatio ? metrics.sharpeRatio.toFixed(2) : 'N/A';
-  const maxDD = chalk.red(`${metrics.maxDrawdown.toFixed(2)}%`);
-  const profitFactor = metrics.profitFactor.toFixed(2);
-  
-  return [
-    `${metrics.totalTrades}`,
-    winRate,
-    totalReturn,
-    sharpe,
-    maxDD,
-    profitFactor
-  ];
-}
+// Removed unused formatMetrics function
 
 /**
  * Display backtest requests in a table
@@ -334,7 +314,7 @@ async function waitForCompletion(requestId: string, client: SimpleApiClient): Pr
   const startTime = Date.now();
 
   while (Date.now() - startTime < maxWaitTime) {
-    const request = await client.get(`/backtests/${requestId}`);
+    const request = await client.get<BacktestRequest>(`/backtests/${requestId}`);
     
     if (request.status === 'completed' || request.status === 'failed') {
       return request;
@@ -386,7 +366,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const backtestRequest = await client.post('/backtests', {
+        const backtestRequest = await client.post<BacktestRequest>('/backtests', {
           strategyId,
           symbols: normalizedSymbols,
           startDate: options.start,
@@ -412,13 +392,14 @@ export function createBacktestCommand(): Command {
         }
 
         console.log(chalk.green('✅ Backtest completed! Fetching results...'));
-        const results = await client.get(`/backtests/${backtestRequest.requestId}/results`);
+        const results = await client.get<BacktestResult>(`/backtests/${backtestRequest.requestId}/results`);
         
         console.log();
         displayBacktestResults(results, options.showTrades);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to run backtest:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to run backtest:'), errorMessage);
       }
     });
 
@@ -441,7 +422,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const params: any = {
+        const params: Record<string, unknown> = {
           limit: parseInt(options.limit)
         };
 
@@ -449,14 +430,15 @@ export function createBacktestCommand(): Command {
           params.status = options.status.toLowerCase();
         }
 
-        const response = await client.get('/backtests', params);
+        const response = await client.get<{backtests: BacktestRequest[]}>('/backtests', params);
         spinner.stop();
 
         console.log(chalk.bold.cyan('🔬 Your Backtests\n'));
         displayBacktestTable(response.backtests);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch backtests:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch backtests:'), errorMessage);
       }
     });
 
@@ -477,7 +459,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const backtest = await client.get(`/backtests/${requestId}`);
+        const backtest = await client.get<BacktestRequest>(`/backtests/${requestId}`);
         spinner.stop();
 
         console.log(chalk.bold.cyan('🔬 Backtest Status\n'));
@@ -510,8 +492,9 @@ export function createBacktestCommand(): Command {
           console.log(chalk.gray('Use `dwlf backtest results <requestId>` to view detailed results'));
         }
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch backtest status:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch backtest status:'), errorMessage);
       }
     });
 
@@ -534,7 +517,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const results = await client.get(`/backtests/${requestId}/results`);
+        const results = await client.get<BacktestResult>(`/backtests/${requestId}/results`);
         spinner.stop();
 
         if (options.json) {
@@ -545,8 +528,9 @@ export function createBacktestCommand(): Command {
         console.log();
         displayBacktestResults(results, options.trades);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch backtest results:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch backtest results:'), errorMessage);
       }
     });
 
@@ -589,8 +573,9 @@ export function createBacktestCommand(): Command {
 
         console.log(chalk.green('✅ Backtest deleted successfully'));
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to delete backtest:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to delete backtest:'), errorMessage);
       }
     });
 
@@ -610,7 +595,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const summary = await client.get('/backtests/summary');
+        const summary = await client.get<{ totalBacktests: number; completedBacktests: number; runningBacktests: number; failedBacktests: number; recentBacktests: BacktestRequest[] }>('/backtests/summary');
         spinner.stop();
 
         console.log(chalk.bold.cyan('🔬 Backtest Summary\n'));
@@ -625,8 +610,9 @@ export function createBacktestCommand(): Command {
           displayBacktestTable(summary.recentBacktests);
         }
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch backtest summary:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch backtest summary:'), errorMessage);
       }
     });
 

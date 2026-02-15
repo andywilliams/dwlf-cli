@@ -359,13 +359,13 @@ export const formatTradesCSV = (data: TradeData[]): string => {
 };
 
 // JSON formatter
-export const formatJSON = (data: any, pretty: boolean = true): string => {
+export const formatJSON = (data: unknown, pretty: boolean = true): string => {
   return JSON.stringify(data, null, pretty ? 2 : 0);
 };
 
 // Main formatter function
 export const formatData = (
-  data: any, 
+  data: unknown, 
   type: 'prices' | 'trades' | 'signals' | 'performance', 
   options: FormatOptions = {}
 ): string => {
@@ -374,38 +374,38 @@ export const formatData = (
   switch (type) {
     case 'prices':
       switch (format) {
-        case 'compact': return formatPricesCompact(data, options);
-        case 'csv': return formatPricesCSV(data);
+        case 'compact': return formatPricesCompact(data as PriceData[], options);
+        case 'csv': return formatPricesCSV(data as PriceData[]);
         case 'json': return formatJSON(data);
-        default: return formatPricesTable(data, options);
+        default: return formatPricesTable(data as PriceData[], options);
       }
     
     case 'trades':
       switch (format) {
-        case 'compact': return formatTradesCompact(data, options);
-        case 'csv': return formatTradesCSV(data);
+        case 'compact': return formatTradesCompact(data as TradeData[], options);
+        case 'csv': return formatTradesCSV(data as TradeData[]);
         case 'json': return formatJSON(data);
-        default: return formatTradesTable(data, options);
+        default: return formatTradesTable(data as TradeData[], options);
       }
     
     case 'signals':
       switch (format) {
-        case 'compact': return data.map((s: SignalData) => 
+        case 'compact': return (data as SignalData[]).map((s: SignalData) => 
           `${s.symbol} ${s.direction.toUpperCase()} @${formatPrice(s.entryPrice, 2, options.colors)} [${s.strategy}]`
         ).join('\n');
         case 'csv': return formatJSON(data); // TODO: implement CSV for signals
         case 'json': return formatJSON(data);
-        default: return formatSignalsTable(data, options);
+        default: return formatSignalsTable(data as SignalData[], options);
       }
     
     case 'performance':
       switch (format) {
-        case 'compact': return data.map((p: PerformanceData) => 
+        case 'compact': return (data as PerformanceData[]).map((p: PerformanceData) => 
           `${p.metric}: ${p.value} (${p.period})`
         ).join('\n');
         case 'csv': return formatJSON(data); // TODO: implement CSV for performance
         case 'json': return formatJSON(data);
-        default: return formatPerformanceTable(data, options);
+        default: return formatPerformanceTable(data as PerformanceData[], options);
       }
     
     default:

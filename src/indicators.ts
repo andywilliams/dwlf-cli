@@ -4,6 +4,7 @@ import Table from 'cli-table3';
 import ora from 'ora';
 import { DWLFApiClient, normalizeSymbol } from './api-client';
 import { getApiKey, getApiUrl, isAuthenticated } from './config';
+import { IndicatorsApiResponse, TrendlinesApiResponse, SupportResistanceApiResponse } from './types';
 
 export interface IndicatorValue {
   name: string;
@@ -159,7 +160,7 @@ async function fetchIndicators(
 ): Promise<IndicatorData> {
   try {
     const normalizedSymbol = normalizeSymbol(symbol);
-    const response = await client.get<any>(`/chart-indicators/${normalizedSymbol}`, { interval });
+    const response = await client.get<IndicatorsApiResponse>(`/chart-indicators/${normalizedSymbol}`, { interval });
     
     return {
       symbol: normalizedSymbol,
@@ -167,8 +168,9 @@ async function fetchIndicators(
       timestamp: new Date().toISOString(),
       indicators: response || {}
     };
-  } catch (error: any) {
-    throw new Error(`Failed to fetch indicators: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to fetch indicators: ${errorMessage}`);
   }
 }
 
@@ -178,10 +180,11 @@ async function fetchIndicators(
 async function fetchTrendlines(client: DWLFApiClient, symbol: string): Promise<TrendlineData[]> {
   try {
     const normalizedSymbol = normalizeSymbol(symbol);
-    const response = await client.get<any>(`/trendlines/${normalizedSymbol}`);
+    const response = await client.get<TrendlinesApiResponse>(`/trendlines/${normalizedSymbol}`);
     return response.trendlines || [];
-  } catch (error: any) {
-    throw new Error(`Failed to fetch trendlines: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to fetch trendlines: ${errorMessage}`);
   }
 }
 
@@ -191,10 +194,11 @@ async function fetchTrendlines(client: DWLFApiClient, symbol: string): Promise<T
 async function fetchSupportResistance(client: DWLFApiClient, symbol: string): Promise<SupportResistanceLevel[]> {
   try {
     const normalizedSymbol = normalizeSymbol(symbol);
-    const response = await client.get<any>(`/support-resistance/${normalizedSymbol}`);
+    const response = await client.get<SupportResistanceApiResponse>(`/support-resistance/${normalizedSymbol}`);
     return response.levels || [];
-  } catch (error: any) {
-    throw new Error(`Failed to fetch support/resistance levels: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to fetch support/resistance levels: ${errorMessage}`);
   }
 }
 
@@ -536,9 +540,10 @@ export function createIndicatorsCommand(): Command {
           const trendlines = await fetchTrendlines(client, symbol);
           spinner.stop();
           displayTrendlines(normalizedSymbol, trendlines);
-        } catch (error: any) {
+        } catch (error: unknown) {
           spinner.stop();
-          console.error(chalk.red('Error:'), error.message);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          console.error(chalk.red('Error:'), errorMessage);
           process.exit(1);
         }
         return;
@@ -550,9 +555,10 @@ export function createIndicatorsCommand(): Command {
           const levels = await fetchSupportResistance(client, symbol);
           spinner.stop();
           displaySupportResistance(normalizedSymbol, levels);
-        } catch (error: any) {
+        } catch (error: unknown) {
           spinner.stop();
-          console.error(chalk.red('Error:'), error.message);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          console.error(chalk.red('Error:'), errorMessage);
           process.exit(1);
         }
         return;
@@ -565,9 +571,10 @@ export function createIndicatorsCommand(): Command {
       try {
         indicatorData = await fetchIndicators(client, symbol, options.interval);
         spinner.stop();
-      } catch (error: any) {
+      } catch (error: unknown) {
         spinner.stop();
-        console.error(chalk.red('Error:'), error.message);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        console.error(chalk.red('Error:'), errorMessage);
         process.exit(1);
       }
 
@@ -588,7 +595,7 @@ export function createIndicatorsCommand(): Command {
           
           displayTrendlines(normalizedSymbol, trendlines);
           displaySupportResistance(normalizedSymbol, levels);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.log(chalk.yellow('\nNote: Could not fetch additional data - some features may not be available for this symbol'));
         }
       }
@@ -604,8 +611,9 @@ export function createIndicatorsCommand(): Command {
         console.log(chalk.dim('  --interval 4h       Use 4-hour timeframe'));
       }
 
-    } catch (error: any) {
-      console.error(chalk.red('Unexpected error:'), error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error(chalk.red('Unexpected error:'), errorMessage);
       process.exit(1);
     }
   });

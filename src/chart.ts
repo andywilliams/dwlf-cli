@@ -1,12 +1,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import Table from 'cli-table3';
+// Removed unused Table import
 import ora from 'ora';
 import { DWLFApiClient } from './api-client';
 import { getApiKey, getApiUrl, isAuthenticated } from './config';
 
 // Import sparkline for ASCII chart generation
-const sparkline = require('sparkline');
+import sparkline from 'sparkline';
 
 export interface Candle {
   timestamp: string;
@@ -113,7 +113,7 @@ function generateSparkline(candles: Candle[], type: 'price' | 'volume' = 'price'
     return sparkline(values);
   } catch (error) {
     // Fallback to simple text representation if sparkline fails
-    return values.map(v => '▄').join('');
+    return values.map(() => '▄').join('');
   }
 }
 
@@ -217,15 +217,16 @@ async function fetchMarketData(
       startDate: params.startDate || '',
       endDate: params.endDate || ''
     };
-  } catch (error: any) {
-    throw new Error(`Failed to fetch market data for ${symbol}: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to fetch market data for ${symbol}: ${message}`);
   }
 }
 
 /**
  * Display chart header with symbol info
  */
-function displayChartHeader(data: MarketDataResponse, options: ChartOptions): void {
+function displayChartHeader(data: MarketDataResponse): void {
   const { candles, symbol, timeframe } = data;
   const { change, changePercent } = calculatePriceChange(candles);
   
@@ -357,8 +358,9 @@ export function createChartCommand(): Command {
       let timeframe: Timeframe;
       try {
         timeframe = validateTimeframe(options.timeframe);
-      } catch (error: any) {
-        console.error(chalk.red('Error:'), error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown validation error';
+        console.error(chalk.red('Error:'), message);
         process.exit(1);
       }
       
@@ -381,14 +383,15 @@ export function createChartCommand(): Command {
       try {
         data = await fetchMarketData(client, chartOptions.symbol, timeframe, options.period);
         spinner.stop();
-      } catch (error: any) {
+      } catch (error: unknown) {
         spinner.stop();
-        console.error(chalk.red('Error:'), error.message);
+        const message = error instanceof Error ? error.message : 'Unknown data fetch error';
+        console.error(chalk.red('Error:'), message);
         process.exit(1);
       }
       
       // Display chart header
-      displayChartHeader(data, chartOptions);
+      displayChartHeader(data);
       
       // Display based on output preference
       if (chartOptions.output === 'browser') {
@@ -410,8 +413,9 @@ export function createChartCommand(): Command {
         console.log(chalk.dim(`\nTip: Use --stats for detailed statistics, --volume for volume chart, --browser for full web chart`));
       }
       
-    } catch (error: any) {
-      console.error(chalk.red('Unexpected error:'), error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown unexpected error';
+      console.error(chalk.red('Unexpected error:'), message);
       process.exit(1);
     }
   });

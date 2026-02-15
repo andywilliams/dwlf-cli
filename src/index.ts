@@ -7,6 +7,7 @@ import ora from 'ora';
 import Table from 'cli-table3';
 import { loadConfig, saveConfig, getApiKey, getApiUrl, maskApiKey, displayConfigStatus, isAuthenticated } from './config';
 import { validateApiKey, displayValidationResult, DWLFApiClient, normalizeSymbol } from './api-client';
+import { Candle, Trade as TradeType } from './types';
 import { createBacktestCommand } from './backtest';
 import { 
   formatData, 
@@ -17,7 +18,6 @@ import {
   OutputFormat,
   PriceData,
   TradeData,
-  SignalData,
   PerformanceData
 } from './formatters';
 import { createSignalsCommand } from './signals';
@@ -27,7 +27,7 @@ import { createChartCommand } from './chart';
 import { createStrategiesCommand } from './strategies';
 import { createIndicatorsCommand } from './indicators';
 import { createCompletionCommand } from './completion';
-import { displayError, displaySuccess, createLink, displayHelp, confirmAction, displayWarning } from './ux-utils';
+// Removed unused imports from ux-utils
 
 const program = new Command();
 
@@ -134,7 +134,7 @@ program
       console.log(chalk.dim('  dwlf price BTC-USD AAPL'));
       console.log(chalk.dim('  dwlf watchlist'));
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(chalk.red('Error during login:'), error instanceof Error ? error.message : 'Unknown error');
       process.exit(1);
     }
@@ -193,7 +193,7 @@ program
       }
 
       // Transform API data to formatter format
-      const priceData: PriceData[] = data.candles.map((candle: any) => ({
+      const priceData: PriceData[] = data.candles.map((candle: Candle) => ({
         symbol: candle.symbol || 'N/A',
         price: Number(candle.close) || 0,
         change: candle.change ? Number(candle.change) : undefined,
@@ -211,9 +211,10 @@ program
       });
       console.log(formatted);
 
-    } catch (error: any) {
-      console.error(chalk.red('Error fetching prices:'), error.message || 'Unknown error');
-      if (error.status === 401) {
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red('Error fetching prices:'), errorMsg);
+      if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -270,9 +271,10 @@ program
           await client.addToWatchlist(normalizedSymbols);
           spinner.stop();
           console.log(chalk.green(`✅ Added ${normalizedSymbols.length} symbol(s) to watchlist:`), normalizedSymbols.join(', '));
-        } catch (error: any) {
+        } catch (error: unknown) {
           spinner.stop();
-          console.error(chalk.red('Error adding symbols:'), error.message);
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(chalk.red('Error adding symbols:'), errorMsg);
         }
       }
 
@@ -285,9 +287,10 @@ program
           await client.removeFromWatchlist(normalizedSymbols);
           spinner.stop();
           console.log(chalk.green(`✅ Removed ${normalizedSymbols.length} symbol(s) from watchlist:`), normalizedSymbols.join(', '));
-        } catch (error: any) {
+        } catch (error: unknown) {
           spinner.stop();
-          console.error(chalk.red('Error removing symbols:'), error.message);
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(chalk.red('Error removing symbols:'), errorMsg);
         }
       }
 
@@ -316,7 +319,7 @@ program
             console.log(chalk.bold.cyan('📋 Watchlist with Prices:'));
             
             // Transform API data to formatter format
-            const watchlistPriceData: PriceData[] = priceData.candles.map((candle: any) => ({
+            const watchlistPriceData: PriceData[] = priceData.candles.map((candle: Candle) => ({
               symbol: candle.symbol || 'N/A',
               price: Number(candle.close) || 0,
               change: candle.change ? Number(candle.change) : undefined,
@@ -336,7 +339,7 @@ program
             console.log(chalk.bold.cyan('📋 Watchlist:'));
             displayWatchlist(symbols, options.format);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.log(chalk.yellow('⚠️  Could not fetch prices. Showing symbols only.'));
           console.log(chalk.bold.cyan('📋 Watchlist:'));
           displayWatchlist(symbols, options.format);
@@ -346,9 +349,10 @@ program
         displayWatchlist(symbols, options.format);
       }
 
-    } catch (error: any) {
-      console.error(chalk.red('Error managing watchlist:'), error.message || 'Unknown error');
-      if (error.status === 401) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red('Error managing watchlist:'), errorMessage);
+      if ((error as Record<string, unknown>).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -381,7 +385,7 @@ tradesCmd
       const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
 
       // Prepare filters
-      const filters: any = {};
+      const filters: { status?: 'open' | 'closed'; symbol?: string } = {};
       if (options.status && options.status !== 'all') {
         filters.status = options.status;
       }
@@ -393,17 +397,38 @@ tradesCmd
       const tradesResponse = await client.getTrades(filters);
       spinner.stop();
 
-      if (!tradesResponse || !tradesResponse.trades || tradesResponse.trades.length === 0) {
+      const tradesArray = Array.isArray(tradesResponse) ? tradesResponse : (tradesResponse as Record<string, unknown>).trades as TradeType[] || [];
+      if (!tradesArray || tradesArray.length === 0) {
         const statusText = options.status === 'all' ? '' : options.status;
         const symbolText = options.symbol ? ` for ${options.symbol}` : '';
         console.log(chalk.yellow(`📋 No ${statusText} trades found${symbolText}.`));
         return;
       }
 
-      const trades = tradesResponse.trades;
+      const trades = tradesArray;
       
       // Transform API data to formatter format
-      const tradeData: TradeData[] = trades.map((trade: any) => ({
+      interface ApiTrade {
+        tradeId?: string;
+        id?: string;
+        symbol: string;
+        side: string;
+        quantity: string | number;
+        entryPrice: string | number;
+        exitPrice?: string | number;
+        openedAt: string;
+        closedAt?: string;
+        status: string;
+        pnlAbs?: string | number;
+        pnlPct?: string | number;
+        rMultiple?: string | number;
+        stopLoss?: string | number;
+        takeProfit?: string | number;
+        notes?: string;
+        isPaperTrade?: boolean;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tradeData = (trades as any[]).map((trade: ApiTrade) => ({
         id: trade.tradeId || trade.id,
         symbol: trade.symbol,
         side: trade.side,
@@ -439,9 +464,10 @@ tradesCmd
         console.log(chalk.gray(`\nSummary: ${openTrades} open, ${closedTrades} closed, Total P&L: ${totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)}`));
       }
 
-    } catch (error: any) {
-      console.error(chalk.red('Error fetching trades:'), error.message || 'Unknown error');
-      if (error.status === 401) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red('Error fetching trades:'), errorMessage);
+      if ((error as Record<string, unknown>).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -491,7 +517,17 @@ tradesCmd
         return;
       }
 
-      const tradeData: any = {
+      interface NewTradeData {
+        symbol: string;
+        side: 'buy' | 'sell';
+        quantity: number;
+        entryPrice: number;
+        stopLoss?: number;
+        takeProfit?: number;
+        notes?: string;
+        isPaperTrade: boolean;
+      }
+      const tradeData: NewTradeData = {
         symbol: normalizeSymbol(options.symbol),
         side: side as 'buy' | 'sell',
         quantity,
@@ -519,9 +555,10 @@ tradesCmd
       if (stopLoss) console.log(chalk.gray(`Stop Loss: $${stopLoss}`));
       if (takeProfit) console.log(chalk.gray(`Take Profit: $${takeProfit}`));
 
-    } catch (error: any) {
-      console.error(chalk.red('Error opening trade:'), error.message || 'Unknown error');
-      if (error.status === 401) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red('Error opening trade:'), errorMessage);
+      if ((error as Record<string, unknown>).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -553,7 +590,7 @@ tradesCmd
       const apiUrl = await getApiUrl();
       const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
 
-      const closeData: any = {
+      const closeData: { exitPrice: number; exitAt?: string; notes?: string } = {
         exitPrice,
         exitAt: new Date().toISOString()
       };
@@ -569,12 +606,17 @@ tradesCmd
       console.log(chalk.gray(`Exit Price: $${exitPrice}`));
       if (result.pnlAbs !== undefined) {
         const pnlColor = result.pnlAbs >= 0 ? chalk.green : chalk.red;
-        console.log(pnlColor(`P&L: ${result.pnlAbs >= 0 ? '+' : ''}$${result.pnlAbs.toFixed(2)} (${result.pnlPct >= 0 ? '+' : ''}${result.pnlPct.toFixed(2)}%)`));
+        console.log(pnlColor(`P&L: ${result.pnlAbs >= 0 ? '+' : ''}$${result.pnlAbs.toFixed(2)} (${(result.pnlPct || 0) >= 0 ? '+' : ''}${(result.pnlPct || 0).toFixed(2)}%)`));
       }
 
-    } catch (error: any) {
-      console.error(chalk.red('Error closing trade:'), error.message || 'Unknown error');
-      if (error.status === 401) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red('Error closing trade:'), errorMessage);
+      interface ApiError {
+        status?: number;
+        isApiError?: boolean;
+      }
+      if (error && typeof error === 'object' && 'status' in error && (error as ApiError).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -604,7 +646,12 @@ tradesCmd
         return;
       }
 
-      const updates: any = {};
+      interface TradeUpdates {
+        stopLoss?: number;
+        takeProfit?: number;
+        notes?: string;
+      }
+      const updates: TradeUpdates = {};
       
       if (options.stop) {
         const stopLoss = parseFloat(options.stop);
@@ -640,9 +687,14 @@ tradesCmd
       if (updates.takeProfit) console.log(chalk.gray(`New Take Profit: $${updates.takeProfit}`));
       if (updates.notes) console.log(chalk.gray(`Updated Notes: ${updates.notes}`));
 
-    } catch (error: any) {
-      console.error(chalk.red('Error updating trade:'), error.message || 'Unknown error');
-      if (error.status === 401) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red('Error updating trade:'), errorMessage);
+      interface ApiError {
+        status?: number;
+        isApiError?: boolean;
+      }
+      if (error && typeof error === 'object' && 'status' in error && (error as ApiError).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -687,7 +739,7 @@ tradesCmd
       details.push(
         ['Symbol', chalk.bold(trade.symbol)],
         ['Side', chalk.bold(trade.side.toUpperCase())],
-        ['Quantity', trade.quantity.toString()],
+        ['Quantity', (trade.quantity || trade.size || 0).toString()],
         ['Entry Price', `$${Number(trade.entryPrice).toFixed(2)}`],
         ['Status', trade.status === 'open' ? chalk.green('OPEN') : chalk.gray('CLOSED')]
       );
@@ -708,7 +760,7 @@ tradesCmd
         const pnlColor = trade.pnlAbs >= 0 ? chalk.green : chalk.red;
         details.push([
           'P&L', 
-          pnlColor(`${trade.pnlAbs >= 0 ? '+' : ''}$${trade.pnlAbs.toFixed(2)} (${trade.pnlPct >= 0 ? '+' : ''}${trade.pnlPct.toFixed(2)}%)`)
+          pnlColor(`${trade.pnlAbs >= 0 ? '+' : ''}$${trade.pnlAbs.toFixed(2)} (${(trade.pnlPct || 0) >= 0 ? '+' : ''}${(trade.pnlPct || 0).toFixed(2)}%)`)
         ]);
       }
 
@@ -726,9 +778,14 @@ tradesCmd
 
       console.log(details.toString());
 
-    } catch (error: any) {
-      console.error(chalk.red('Error fetching trade details:'), error.message || 'Unknown error');
-      if (error.status === 401) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red('Error fetching trade details:'), errorMessage);
+      interface ApiError {
+        status?: number;
+        isApiError?: boolean;
+      }
+      if (error && typeof error === 'object' && 'status' in error && (error as ApiError).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -867,7 +924,6 @@ function displayWatchlist(symbols: string[], format: string = 'table'): void {
         // Simple list for small watchlists with enhanced formatting
         console.log();
         symbols.forEach((symbol, index) => {
-          const indicator = chalk.gray('•');
           const numbering = chalk.gray(`${(index + 1).toString().padStart(2)}.`);
           const symbolFormatted = chalk.cyan.bold(symbol);
           console.log(`  ${numbering} ${symbolFormatted}`);
@@ -910,7 +966,7 @@ program.on('command:*', () => {
 // Parse and execute
 try {
   program.parse(process.argv);
-} catch (error) {
+} catch (error: unknown) {
   console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
   process.exit(1);
 }

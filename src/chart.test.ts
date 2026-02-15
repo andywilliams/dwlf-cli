@@ -106,13 +106,14 @@ describe('Chart Command', () => {
     const command = createChartCommand();
     
     // Mock authentication
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { isAuthenticated, getApiKey, getApiUrl } = require('./config');
     isAuthenticated.mockResolvedValue(true);
     getApiKey.mockResolvedValue('dwlf_sk_test');
     getApiUrl.mockResolvedValue('https://api.dwlf.co.uk/v2');
     
     try {
-      await command.parseAsync(['node', 'test', 'chart', 'BTC-USD', '--timeframe', 'invalid'], { from: 'user' });
+      await command.parseAsync(['BTC-USD', '--timeframe', 'invalid'], { from: 'user' });
     } catch (error) {
       expect((error as Error).message).toContain('Process exited with code 1');
     }
@@ -127,11 +128,12 @@ describe('Chart Command', () => {
     const command = createChartCommand();
     
     // Mock authentication failure
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { isAuthenticated } = require('./config');
     isAuthenticated.mockResolvedValue(false);
     
     try {
-      await command.parseAsync(['node', 'test', 'chart', 'BTC-USD'], { from: 'user' });
+      await command.parseAsync(['BTC-USD'], { from: 'user' });
     } catch (error) {
       expect((error as Error).message).toContain('Process exited with code 1');
     }
@@ -145,18 +147,20 @@ describe('Chart Command', () => {
     const command = createChartCommand();
     
     // Mock authentication
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { isAuthenticated, getApiKey, getApiUrl } = require('./config');
     isAuthenticated.mockResolvedValue(true);
     getApiKey.mockResolvedValue('dwlf_sk_test');
     getApiUrl.mockResolvedValue('https://api.dwlf.co.uk/v2');
     
     // Mock API client failure
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { DWLFApiClient } = require('./api-client');
     const mockGet = jest.fn().mockRejectedValue(new Error('API Error'));
     DWLFApiClient.mockImplementation(() => ({ get: mockGet }));
     
     try {
-      await command.parseAsync(['node', 'test', 'chart', 'BTC-USD'], { from: 'user' });
+      await command.parseAsync(['BTC-USD'], { from: 'user' });
     } catch (error) {
       expect((error as Error).message).toContain('Process exited with code 1');
     }
@@ -171,12 +175,14 @@ describe('Chart Command', () => {
     const command = createChartCommand();
     
     // Mock authentication
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { isAuthenticated, getApiKey, getApiUrl } = require('./config');
     isAuthenticated.mockResolvedValue(true);
     getApiKey.mockResolvedValue('dwlf_sk_test');
     getApiUrl.mockResolvedValue('https://api.dwlf.co.uk/v2');
     
     // Mock successful API response
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { DWLFApiClient } = require('./api-client');
     const mockMarketData = {
       candles: [
@@ -187,7 +193,7 @@ describe('Chart Command', () => {
     const mockGet = jest.fn().mockResolvedValue(mockMarketData);
     DWLFApiClient.mockImplementation(() => ({ get: mockGet }));
     
-    await command.parseAsync(['node', 'test', 'chart', 'BTC-USD', '--stats'], { from: 'user' });
+    await command.parseAsync(['BTC-USD', '--stats'], { from: 'user' });
     
     // Should display chart header and statistics
     expect(mockConsoleLog).toHaveBeenCalledWith(

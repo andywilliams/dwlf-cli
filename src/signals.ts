@@ -4,6 +4,7 @@ import Table from 'cli-table3';
 import ora from 'ora';
 import { DWLFApiClient } from './api-client';
 import { getApiKey, getApiUrl, isAuthenticated } from './config';
+import { ApiSignal, SignalsApiResponse } from './types';
 
 export interface Signal {
   signalId: string;
@@ -47,7 +48,7 @@ export interface SignalFilters {
 /**
  * Transform API signal to CLI signal interface
  */
-function transformApiSignal(apiSignal: any): Signal {
+function transformApiSignal(apiSignal: ApiSignal): Signal {
   return {
     signalId: apiSignal.signalId,
     symbol: apiSignal.symbol,
@@ -63,7 +64,7 @@ function transformApiSignal(apiSignal: any): Signal {
     riskRewardRatio: apiSignal.currentRR,
     pnlPct: apiSignal.percentageGain,
     status: apiSignal.active === 'true' || apiSignal.active === true ? 'ACTIVE' : 'CLOSED',
-    generatedAt: apiSignal.createdAt || apiSignal.date,
+    generatedAt: apiSignal.createdAt || apiSignal.date || '',
     closedAt: apiSignal.closedAt || apiSignal.exitDate
   };
 }
@@ -120,15 +121,7 @@ function formatPercentage(pct: number | undefined): string {
   return pct >= 0 ? chalk.green(formatted) : chalk.red(formatted);
 }
 
-/**
- * Format R-multiple with color coding
- */
-function formatRMultiple(rMultiple: number | undefined): string {
-  if (rMultiple === undefined) return '-';
-  
-  const formatted = (rMultiple >= 0 ? '+' : '') + rMultiple.toFixed(2) + 'R';
-  return rMultiple >= 0 ? chalk.green(formatted) : chalk.red(formatted);
-}
+// Removed unused formatRMultiple function
 
 /**
  * Fetch signals from the API
@@ -136,7 +129,7 @@ function formatRMultiple(rMultiple: number | undefined): string {
 async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}): Promise<SignalsResponse> {
   try {
     // Build query parameters
-    const params: Record<string, any> = {};
+    const params: Record<string, string | number> = {};
     
     if (filters.strategy) params.strategy = filters.strategy;
     if (filters.symbol) params.symbol = filters.symbol.toUpperCase();
@@ -146,10 +139,10 @@ async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}):
     if (filters.page) params.page = filters.page;
 
     // Fetch from signals API endpoint
-    const apiResponse = await client.get<any>('/v2/user/trade-signals', params);
+    const apiResponse = await client.get<SignalsApiResponse>('/v2/user/trade-signals', params);
     
     // Transform API response to CLI format
-    const signals = apiResponse.signals ? apiResponse.signals.map((apiSignal: any) => {
+    const signals = apiResponse.signals ? apiResponse.signals.map((apiSignal: ApiSignal) => {
       const signal = transformApiSignal(apiSignal);
       return {
         ...signal,
@@ -159,9 +152,9 @@ async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}):
     
     // Transform pagination structure
     const pagination = apiResponse.pagination ? {
-      total: apiResponse.pagination.total || apiResponse.total || 0,
-      page: Math.floor((apiResponse.pagination.offset || 0) / (params.limit || 50)) + 1,
-      limit: params.limit || 50,
+      total: apiResponse.pagination.total || (apiResponse as unknown as Record<string, unknown>).total as number || 0,
+      page: Math.floor((((apiResponse.pagination as unknown as Record<string, unknown>).offset as number) || 0) / (Number(params.limit) || 50)) + 1,
+      limit: Number(params.limit) || 50,
       hasMore: apiResponse.pagination.hasMore || false
     } : undefined;
     
@@ -169,8 +162,9 @@ async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}):
       signals,
       pagination
     } as SignalsResponse;
-  } catch (error: any) {
-    throw new Error(`Failed to fetch signals: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to fetch signals: ${errorMessage}`);
   }
 }
 
@@ -179,14 +173,15 @@ async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}):
  */
 async function fetchSignalDetails(client: DWLFApiClient, signalId: string): Promise<Signal> {
   try {
-    const apiSignal = await client.get<any>(`/v2/trade-signals/${signalId}`);
+    const apiSignal = await client.get<ApiSignal>(`/v2/trade-signals/${signalId}`);
     const signal = transformApiSignal(apiSignal);
     return {
       ...signal,
       signalAge: formatSignalAge(signal.generatedAt)
     };
-  } catch (error: any) {
-    throw new Error(`Failed to fetch signal details: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to fetch signal details: ${errorMessage}`);
   }
 }
 
@@ -393,9 +388,10 @@ export function createSignalsCommand(): Command {
           const signal = await fetchSignalDetails(client, options.id);
           spinner.stop();
           displaySignalDetails(signal);
-        } catch (error: any) {
+        } catch (error: unknown) {
           spinner.stop();
-          console.error(chalk.red('Error:'), error.message);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          console.error(chalk.red('Error:'), errorMessage);
           process.exit(1);
         }
         return;
@@ -418,9 +414,10 @@ export function createSignalsCommand(): Command {
       try {
         response = await fetchSignals(client, filters);
         spinner.stop();
-      } catch (error: any) {
+      } catch (error: unknown) {
         spinner.stop();
-        console.error(chalk.red('Error:'), error.message);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        console.error(chalk.red('Error:'), errorMessage);
         process.exit(1);
       }
       
@@ -446,8 +443,9 @@ export function createSignalsCommand(): Command {
         console.log(chalk.dim(`\nTip: Use --details for more information, or --id <signalId> for full signal details`));
       }
 
-    } catch (error: any) {
-      console.error(chalk.red('Unexpected error:'), error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error(chalk.red('Unexpected error:'), errorMessage);
       process.exit(1);
     }
   });
