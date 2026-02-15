@@ -1,4 +1,7 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import axios from 'axios';
+type AxiosInstance = ReturnType<typeof axios.create>;
+type AxiosError = Error & { response?: { status: number; data: unknown }; code?: string };
+interface AxiosRequestConfig { params?: Record<string, unknown> }
 import chalk from 'chalk';
 import { MarketDataResponse, WatchlistResponse, Trade } from './types';
 
@@ -142,10 +145,11 @@ export class DWLFApiClient {
     });
 
     // Add response interceptor for error handling
-    this.http.interceptors.response.use(
-      (response) => response,
-      async (error: AxiosError) => {
-        return this.handleError(error);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.http.interceptors.response as any).use(
+      undefined,
+      async (error: unknown) => {
+        return this.handleError(error as AxiosError);
       }
     );
   }
@@ -177,7 +181,7 @@ export class DWLFApiClient {
     }
 
     const status = error.response?.status;
-    const data = error.response?.data as unknown;
+    const data = error.response?.data as Record<string, unknown> | undefined;
 
     if (status === 401) {
       return 'Invalid API key. Please check your authentication credentials.';
@@ -205,7 +209,7 @@ export class DWLFApiClient {
     }
     
     if (data?.message) {
-      return data.message;
+      return String(data.message);
     }
 
     return error.message || 'Unknown error occurred';
@@ -232,7 +236,7 @@ export class DWLFApiClient {
 
     // Retry on 5xx server errors and 429 rate limiting
     const status = error.response?.status;
-    return status === 429 || (status >= 500 && status <= 599);
+    return status === 429 || (status !== undefined && status >= 500 && status <= 599);
   }
 
   private async makeRequest<T>(
@@ -271,9 +275,9 @@ export class DWLFApiClient {
             break;
         }
 
-        return response.data;
-      } catch (error) {
-        if (!this.shouldRetry(error, attempt)) {
+        return response.data as T;
+      } catch (error: unknown) {
+        if (!this.shouldRetry(error as AxiosError, attempt)) {
           throw error;
         }
 

@@ -7,9 +7,8 @@ import ora from 'ora';
 import Table from 'cli-table3';
 import { loadConfig, saveConfig, getApiKey, getApiUrl, maskApiKey, displayConfigStatus, isAuthenticated } from './config';
 import { validateApiKey, displayValidationResult, DWLFApiClient, normalizeSymbol } from './api-client';
-import { Candle } from './types';
+import { Candle, Trade as TradeType } from './types';
 import { createBacktestCommand } from './backtest';
-import { Candle } from './types';
 import { 
   formatData, 
   formatJSON,
@@ -135,7 +134,7 @@ program
       console.log(chalk.dim('  dwlf price BTC-USD AAPL'));
       console.log(chalk.dim('  dwlf watchlist'));
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(chalk.red('Error during login:'), error instanceof Error ? error.message : 'Unknown error');
       process.exit(1);
     }
@@ -340,7 +339,7 @@ program
             console.log(chalk.bold.cyan('📋 Watchlist:'));
             displayWatchlist(symbols, options.format);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.log(chalk.yellow('⚠️  Could not fetch prices. Showing symbols only.'));
           console.log(chalk.bold.cyan('📋 Watchlist:'));
           displayWatchlist(symbols, options.format);
@@ -353,7 +352,7 @@ program
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(chalk.red('Error managing watchlist:'), errorMessage);
-      if (error.status === 401) {
+      if ((error as Record<string, unknown>).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -386,12 +385,7 @@ tradesCmd
       const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
 
       // Prepare filters
-      interface TradeFilters {
-        status?: string;
-        symbol?: string;
-        limit?: number;
-      }
-      const filters: TradeFilters = {};
+      const filters: { status?: 'open' | 'closed'; symbol?: string } = {};
       if (options.status && options.status !== 'all') {
         filters.status = options.status;
       }
@@ -403,14 +397,15 @@ tradesCmd
       const tradesResponse = await client.getTrades(filters);
       spinner.stop();
 
-      if (!tradesResponse || !tradesResponse.trades || tradesResponse.trades.length === 0) {
+      const tradesArray = Array.isArray(tradesResponse) ? tradesResponse : (tradesResponse as Record<string, unknown>).trades as TradeType[] || [];
+      if (!tradesArray || tradesArray.length === 0) {
         const statusText = options.status === 'all' ? '' : options.status;
         const symbolText = options.symbol ? ` for ${options.symbol}` : '';
         console.log(chalk.yellow(`📋 No ${statusText} trades found${symbolText}.`));
         return;
       }
 
-      const trades = tradesResponse.trades;
+      const trades = tradesArray;
       
       // Transform API data to formatter format
       interface ApiTrade {
@@ -432,7 +427,8 @@ tradesCmd
         notes?: string;
         isPaperTrade?: boolean;
       }
-      const tradeData: TradeData[] = trades.map((trade: ApiTrade) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tradeData = (trades as any[]).map((trade: ApiTrade) => ({
         id: trade.tradeId || trade.id,
         symbol: trade.symbol,
         side: trade.side,
@@ -471,7 +467,7 @@ tradesCmd
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(chalk.red('Error fetching trades:'), errorMessage);
-      if (error.status === 401) {
+      if ((error as Record<string, unknown>).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -562,7 +558,7 @@ tradesCmd
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(chalk.red('Error opening trade:'), errorMessage);
-      if (error.status === 401) {
+      if ((error as Record<string, unknown>).status === 401) {
         console.log(chalk.gray('Try running `dwlf login --validate` to check your API key.'));
       }
     }
@@ -594,11 +590,7 @@ tradesCmd
       const apiUrl = await getApiUrl();
       const client = new DWLFApiClient({ apiKey, baseUrl: apiUrl });
 
-      interface CloseTradeData {
-        exitPrice: number;
-        exitAt: string;
-      }
-      const closeData: CloseTradeData = {
+      const closeData: { exitPrice: number; exitAt?: string; notes?: string } = {
         exitPrice,
         exitAt: new Date().toISOString()
       };
@@ -614,7 +606,7 @@ tradesCmd
       console.log(chalk.gray(`Exit Price: $${exitPrice}`));
       if (result.pnlAbs !== undefined) {
         const pnlColor = result.pnlAbs >= 0 ? chalk.green : chalk.red;
-        console.log(pnlColor(`P&L: ${result.pnlAbs >= 0 ? '+' : ''}$${result.pnlAbs.toFixed(2)} (${result.pnlPct >= 0 ? '+' : ''}${result.pnlPct.toFixed(2)}%)`));
+        console.log(pnlColor(`P&L: ${result.pnlAbs >= 0 ? '+' : ''}$${result.pnlAbs.toFixed(2)} (${(result.pnlPct || 0) >= 0 ? '+' : ''}${(result.pnlPct || 0).toFixed(2)}%)`));
       }
 
     } catch (error: unknown) {
@@ -747,7 +739,7 @@ tradesCmd
       details.push(
         ['Symbol', chalk.bold(trade.symbol)],
         ['Side', chalk.bold(trade.side.toUpperCase())],
-        ['Quantity', trade.quantity.toString()],
+        ['Quantity', (trade.quantity || trade.size || 0).toString()],
         ['Entry Price', `$${Number(trade.entryPrice).toFixed(2)}`],
         ['Status', trade.status === 'open' ? chalk.green('OPEN') : chalk.gray('CLOSED')]
       );
@@ -768,7 +760,7 @@ tradesCmd
         const pnlColor = trade.pnlAbs >= 0 ? chalk.green : chalk.red;
         details.push([
           'P&L', 
-          pnlColor(`${trade.pnlAbs >= 0 ? '+' : ''}$${trade.pnlAbs.toFixed(2)} (${trade.pnlPct >= 0 ? '+' : ''}${trade.pnlPct.toFixed(2)}%)`)
+          pnlColor(`${trade.pnlAbs >= 0 ? '+' : ''}$${trade.pnlAbs.toFixed(2)} (${(trade.pnlPct || 0) >= 0 ? '+' : ''}${(trade.pnlPct || 0).toFixed(2)}%)`)
         ]);
       }
 
@@ -974,7 +966,7 @@ program.on('command:*', () => {
 // Parse and execute
 try {
   program.parse(process.argv);
-} catch (error) {
+} catch (error: unknown) {
   console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
   process.exit(1);
 }

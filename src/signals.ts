@@ -64,7 +64,7 @@ function transformApiSignal(apiSignal: ApiSignal): Signal {
     riskRewardRatio: apiSignal.currentRR,
     pnlPct: apiSignal.percentageGain,
     status: apiSignal.active === 'true' || apiSignal.active === true ? 'ACTIVE' : 'CLOSED',
-    generatedAt: apiSignal.createdAt || apiSignal.date,
+    generatedAt: apiSignal.createdAt || apiSignal.date || '',
     closedAt: apiSignal.closedAt || apiSignal.exitDate
   };
 }
@@ -152,9 +152,9 @@ async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}):
     
     // Transform pagination structure
     const pagination = apiResponse.pagination ? {
-      total: apiResponse.pagination.total || apiResponse.total || 0,
-      page: Math.floor((apiResponse.pagination.offset || 0) / (params.limit || 50)) + 1,
-      limit: params.limit || 50,
+      total: apiResponse.pagination.total || (apiResponse as unknown as Record<string, unknown>).total as number || 0,
+      page: Math.floor((((apiResponse.pagination as unknown as Record<string, unknown>).offset as number) || 0) / (Number(params.limit) || 50)) + 1,
+      limit: Number(params.limit) || 50,
       hasMore: apiResponse.pagination.hasMore || false
     } : undefined;
     

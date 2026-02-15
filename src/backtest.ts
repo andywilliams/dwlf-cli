@@ -53,7 +53,7 @@ class SimpleApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private async request(method: string, endpoint: string, body?: unknown): Promise<unknown> {
+  private async request<T = unknown>(method: string, endpoint: string, body?: unknown): Promise<T> {
     const url = `${this.baseUrl}/v2${endpoint}`;
     
     const options: RequestInit = {
@@ -85,10 +85,10 @@ class SimpleApiClient {
       throw new Error(errorMessage);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
-  async get(endpoint: string, params?: Record<string, unknown>): Promise<unknown> {
+  async get<T = unknown>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
     let url = endpoint;
     if (params) {
       const searchParams = new URLSearchParams();
@@ -102,15 +102,15 @@ class SimpleApiClient {
         url += `?${queryString}`;
       }
     }
-    return this.request('GET', url);
+    return this.request<T>('GET', url);
   }
 
-  async post(endpoint: string, body?: unknown): Promise<unknown> {
-    return this.request('POST', endpoint, body);
+  async post<T = unknown>(endpoint: string, body?: unknown): Promise<T> {
+    return this.request<T>('POST', endpoint, body);
   }
 
-  async delete(endpoint: string): Promise<unknown> {
-    return this.request('DELETE', endpoint);
+  async delete<T = unknown>(endpoint: string): Promise<T> {
+    return this.request<T>('DELETE', endpoint);
   }
 }
 
@@ -314,7 +314,7 @@ async function waitForCompletion(requestId: string, client: SimpleApiClient): Pr
   const startTime = Date.now();
 
   while (Date.now() - startTime < maxWaitTime) {
-    const request = await client.get(`/backtests/${requestId}`);
+    const request = await client.get<BacktestRequest>(`/backtests/${requestId}`);
     
     if (request.status === 'completed' || request.status === 'failed') {
       return request;
@@ -366,7 +366,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const backtestRequest = await client.post('/backtests', {
+        const backtestRequest = await client.post<BacktestRequest>('/backtests', {
           strategyId,
           symbols: normalizedSymbols,
           startDate: options.start,
@@ -392,7 +392,7 @@ export function createBacktestCommand(): Command {
         }
 
         console.log(chalk.green('✅ Backtest completed! Fetching results...'));
-        const results = await client.get(`/backtests/${backtestRequest.requestId}/results`);
+        const results = await client.get<BacktestResult>(`/backtests/${backtestRequest.requestId}/results`);
         
         console.log();
         displayBacktestResults(results, options.showTrades);
@@ -430,7 +430,7 @@ export function createBacktestCommand(): Command {
           params.status = options.status.toLowerCase();
         }
 
-        const response = await client.get('/backtests', params);
+        const response = await client.get<{backtests: BacktestRequest[]}>('/backtests', params);
         spinner.stop();
 
         console.log(chalk.bold.cyan('🔬 Your Backtests\n'));
@@ -459,7 +459,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const backtest = await client.get(`/backtests/${requestId}`);
+        const backtest = await client.get<BacktestRequest>(`/backtests/${requestId}`);
         spinner.stop();
 
         console.log(chalk.bold.cyan('🔬 Backtest Status\n'));
@@ -517,7 +517,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const results = await client.get(`/backtests/${requestId}/results`);
+        const results = await client.get<BacktestResult>(`/backtests/${requestId}/results`);
         spinner.stop();
 
         if (options.json) {
@@ -595,7 +595,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const summary = await client.get('/backtests/summary');
+        const summary = await client.get<{ totalBacktests: number; completedBacktests: number; runningBacktests: number; failedBacktests: number; recentBacktests: BacktestRequest[] }>('/backtests/summary');
         spinner.stop();
 
         console.log(chalk.bold.cyan('🔬 Backtest Summary\n'));

@@ -136,21 +136,14 @@ export async function selectMultiple(
     initial?: string[];
   }
 ): Promise<string[]> {
-  interface PromptConfig {
-    type: string;
-    name: string;
-    message: string;
-    choices: Array<string | { name: string; value: string; hint?: string }>;
-    initial?: string | string[];
-  }
-
   const { selected }: { selected: string[] } = await prompt({
     type: 'multiselect',
     name: 'selected',
     message,
     choices,
     initial: options?.initial
-  } as PromptConfig);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
   
   return selected;
 }
@@ -174,7 +167,8 @@ export async function selectOne(
     message,
     choices,
     initial: options?.initial
-  } as PromptConfig);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
   
   return selected;
 }
@@ -277,7 +271,7 @@ export function displayTable(
       head: [],
       border: ['gray']
     },
-    colWidths: options?.maxWidth ? undefined : columns.map(() => undefined),
+    colWidths: options?.maxWidth ? undefined : undefined,
     wordWrap: true
   });
   

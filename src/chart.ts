@@ -6,7 +6,7 @@ import { DWLFApiClient } from './api-client';
 import { getApiKey, getApiUrl, isAuthenticated } from './config';
 
 // Import sparkline for ASCII chart generation
-import * as sparkline from 'sparkline';
+import sparkline from 'sparkline';
 
 export interface Candle {
   timestamp: string;
