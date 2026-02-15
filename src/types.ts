@@ -76,6 +76,31 @@ export interface SignalsApiResponse {
   };
 }
 
+export interface IndicatorsApiResponse {
+  [key: string]: unknown; // Generic object for indicator data
+}
+
+export interface TrendlinesApiResponse {
+  trendlines: Array<{
+    type: 'support' | 'resistance' | 'trend';
+    slope: number;
+    yIntercept: number;
+    touchPoints: Array<{ date: string; price: number }>;
+    strength: number;
+    isActive: boolean;
+  }>;
+}
+
+export interface SupportResistanceApiResponse {
+  levels: Array<{
+    price: number;
+    type: 'support' | 'resistance';
+    strength: number;
+    touchCount: number;
+    lastTouch?: string;
+  }>;
+}
+
 // Type declarations for modules without types
 declare module 'sparkline' {
   function sparkline(data: number[]): string;
