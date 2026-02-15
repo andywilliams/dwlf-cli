@@ -113,7 +113,7 @@ describe('Chart Command', () => {
     getApiUrl.mockResolvedValue('https://api.dwlf.co.uk/v2');
     
     try {
-      await command.parseAsync(['node', 'test', 'chart', 'BTC-USD', '--timeframe', 'invalid'], { from: 'user' });
+      await command.parseAsync(['BTC-USD', '--timeframe', 'invalid'], { from: 'user' });
     } catch (error) {
       expect((error as Error).message).toContain('Process exited with code 1');
     }
@@ -133,7 +133,7 @@ describe('Chart Command', () => {
     isAuthenticated.mockResolvedValue(false);
     
     try {
-      await command.parseAsync(['node', 'test', 'chart', 'BTC-USD'], { from: 'user' });
+      await command.parseAsync(['BTC-USD'], { from: 'user' });
     } catch (error) {
       expect((error as Error).message).toContain('Process exited with code 1');
     }
@@ -160,7 +160,7 @@ describe('Chart Command', () => {
     DWLFApiClient.mockImplementation(() => ({ get: mockGet }));
     
     try {
-      await command.parseAsync(['node', 'test', 'chart', 'BTC-USD'], { from: 'user' });
+      await command.parseAsync(['BTC-USD'], { from: 'user' });
     } catch (error) {
       expect((error as Error).message).toContain('Process exited with code 1');
     }
@@ -193,7 +193,7 @@ describe('Chart Command', () => {
     const mockGet = jest.fn().mockResolvedValue(mockMarketData);
     DWLFApiClient.mockImplementation(() => ({ get: mockGet }));
     
-    await command.parseAsync(['node', 'test', 'chart', 'BTC-USD', '--stats'], { from: 'user' });
+    await command.parseAsync(['BTC-USD', '--stats'], { from: 'user' });
     
     // Should display chart header and statistics
     expect(mockConsoleLog).toHaveBeenCalledWith(

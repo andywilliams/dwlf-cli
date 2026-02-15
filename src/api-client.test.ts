@@ -98,7 +98,7 @@ describe('normalizeSymbol', () => {
 describe('DWLFApiClient', () => {
   describe('constructor and configuration', () => {
     test('creates instance with default options', () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       expect(mockedAxios.create).toHaveBeenCalledWith({
         baseURL: 'https://api.dwlf.co.uk/v2',
         timeout: 30000,
@@ -129,15 +129,15 @@ describe('DWLFApiClient', () => {
       });
     });
 
-    test('sets up response interceptor', () => {
-      new DWLFApiClient();
-      expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalled();
+    test('creates axios instance with proper config', () => {
+      new DWLFApiClient({ maxRetries: 0 });
+      expect(mockedAxios.create).toHaveBeenCalled();
     });
   });
 
   describe('error handling', () => {
     test('handles network connection errors', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       const networkError = new Error('Network Error');
       (networkError as any).code = 'ECONNREFUSED';
       
@@ -147,7 +147,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('handles timeout errors', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       const timeoutError = new Error('timeout of 30000ms exceeded');
       (timeoutError as any).code = 'ETIMEDOUT';
       
@@ -157,7 +157,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('handles 401 unauthorized errors', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       const authError = {
         response: { status: 401, data: { error: 'Unauthorized' } },
         message: 'Request failed with status code 401'
@@ -165,77 +165,77 @@ describe('DWLFApiClient', () => {
       
       // Simulate the error handler being called
       mockAxiosInstance.get.mockImplementation(() => {
-        return mockAxiosInstance._errorHandler(authError);
+        return Promise.reject(authError);
       });
       
       await expect(client.get('/test')).rejects.toThrow('Invalid API key');
     });
 
     test('handles 403 forbidden errors', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       const forbiddenError = {
         response: { status: 403, data: { error: 'Forbidden' } },
         message: 'Request failed with status code 403'
       } as any;
       
       mockAxiosInstance.get.mockImplementation(() => {
-        return mockAxiosInstance._errorHandler(forbiddenError);
+        return Promise.reject(forbiddenError);
       });
       
       await expect(client.get('/test')).rejects.toThrow('Access forbidden');
     });
 
     test('handles 404 not found errors', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       const notFoundError = {
         response: { status: 404, data: { error: 'Not found' } },
         message: 'Request failed with status code 404'
       } as any;
       
       mockAxiosInstance.get.mockImplementation(() => {
-        return mockAxiosInstance._errorHandler(notFoundError);
+        return Promise.reject(notFoundError);
       });
       
       await expect(client.get('/test')).rejects.toThrow('Resource not found');
     });
 
     test('handles 429 rate limit errors', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       const rateLimitError = {
         response: { status: 429, data: { error: 'Too many requests' } },
         message: 'Request failed with status code 429'
       } as any;
       
       mockAxiosInstance.get.mockImplementation(() => {
-        return mockAxiosInstance._errorHandler(rateLimitError);
+        return Promise.reject(rateLimitError);
       });
       
       await expect(client.get('/test')).rejects.toThrow('Rate limit exceeded');
     });
 
     test('handles 500 server errors', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       const serverError = {
         response: { status: 500, data: { error: 'Internal server error' } },
         message: 'Request failed with status code 500'
       } as any;
       
       mockAxiosInstance.get.mockImplementation(() => {
-        return mockAxiosInstance._errorHandler(serverError);
+        return Promise.reject(serverError);
       });
       
       await expect(client.get('/test')).rejects.toThrow('Server error');
     });
 
     test('extracts error message from response data', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       const customError = {
         response: { status: 400, data: { message: 'Custom error message' } },
         message: 'Request failed with status code 400'
       } as any;
       
       mockAxiosInstance.get.mockImplementation(() => {
-        return mockAxiosInstance._errorHandler(customError);
+        return Promise.reject(customError);
       });
       
       await expect(client.get('/test')).rejects.toThrow('Custom error message');
@@ -272,6 +272,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('simple retry on network error', async () => {
+      jest.useRealTimers();
       const client = new DWLFApiClient({ maxRetries: 1, retryDelay: 1 });
       const networkError = new Error('Network Error');
       (networkError as any).code = 'ECONNREFUSED';
@@ -291,6 +292,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('simple retry on 500 server error', async () => {
+      jest.useRealTimers();
       const client = new DWLFApiClient({ maxRetries: 1, retryDelay: 1 });
       const serverError = {
         response: { status: 500 },
@@ -319,7 +321,7 @@ describe('DWLFApiClient', () => {
       } as any;
       
       mockAxiosInstance.get.mockImplementation(() => {
-        return mockAxiosInstance._errorHandler(clientError);
+        return Promise.reject(clientError);
       });
       
       await expect(client.get('/test')).rejects.toThrow();
@@ -327,6 +329,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('exhausts retries on persistent errors', async () => {
+      jest.useRealTimers();
       const client = new DWLFApiClient({ maxRetries: 2, retryDelay: 1 });
       const networkError = new Error('Persistent Network Error');
       (networkError as any).code = 'ECONNREFUSED';
@@ -337,7 +340,7 @@ describe('DWLFApiClient', () => {
         return Promise.reject(networkError);
       });
       
-      await expect(client.get('/test')).rejects.toThrow('Persistent Network Error');
+      await expect(client.get('/test')).rejects.toThrow('Cannot connect to DWLF API');
       expect(callCount).toBe(3); // Initial + 2 retries
     });
   });
@@ -370,7 +373,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('works without rate limiting when not configured', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       
       mockAxiosInstance.get.mockResolvedValue({ data: { success: true } });
       
@@ -387,7 +390,7 @@ describe('DWLFApiClient', () => {
 
   describe('HTTP method wrappers', () => {
     test('get method works correctly', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       mockAxiosInstance.get.mockResolvedValueOnce({ data: { result: 'success' } });
       
       const result = await client.get('/test', { param1: 'value1' });
@@ -399,7 +402,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('post method works correctly', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       mockAxiosInstance.post.mockResolvedValueOnce({ data: { id: 123 } });
       
       const result = await client.post('/create', { name: 'test' });
@@ -411,7 +414,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('put method works correctly', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       mockAxiosInstance.put.mockResolvedValueOnce({ data: { updated: true } });
       
       const result = await client.put('/update/123', { name: 'updated' });
@@ -423,7 +426,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('delete method works correctly', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       mockAxiosInstance.delete.mockResolvedValueOnce({ data: { deleted: true } });
       
       const result = await client.delete('/delete/123');
@@ -435,7 +438,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('cleans undefined parameters', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       mockAxiosInstance.get.mockResolvedValueOnce({ data: { result: 'success' } });
       
       await client.get('/test', { 
@@ -464,20 +467,23 @@ describe('DWLFApiClient', () => {
     });
 
     test('returns invalid result when API key fails', async () => {
-      const client = new DWLFApiClient({ apiKey: 'dwlf_sk_invalid' });
-      const error = new Error('API Error: Invalid API key');
+      const client = new DWLFApiClient({ apiKey: 'dwlf_sk_invalid', maxRetries: 0 });
+      const error = {
+        response: { status: 401, data: { error: 'Invalid API key' } },
+        message: 'Request failed with status code 401'
+      };
       mockAxiosInstance.get.mockRejectedValueOnce(error);
       
       const result = await client.validateApiKey();
       
       expect(result.valid).toBe(false);
-      expect(result.error).toBe('API Error: Invalid API key');
+      expect(result.error).toContain('Invalid API key');
     });
   });
 
   describe('testConnectivity method', () => {
     test('returns true when health endpoint is reachable', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       mockedAxios.get.mockResolvedValueOnce({ 
         status: 200, 
         data: {}, 
@@ -495,7 +501,7 @@ describe('DWLFApiClient', () => {
     });
 
     test('returns false when health endpoint is unreachable', async () => {
-      const client = new DWLFApiClient();
+      const client = new DWLFApiClient({ maxRetries: 0 });
       mockedAxios.get.mockRejectedValueOnce(new Error('Network error'));
       
       const result = await client.testConnectivity();

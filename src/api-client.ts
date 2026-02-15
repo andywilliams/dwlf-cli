@@ -144,14 +144,7 @@ export class DWLFApiClient {
       },
     });
 
-    // Add response interceptor for error handling
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.http.interceptors.response as any).use(
-      undefined,
-      async (error: unknown) => {
-        return this.handleError(error as AxiosError);
-      }
-    );
+    // Error handling moved to makeRequest for retry compatibility
   }
 
   private async handleError(error: AxiosError): Promise<never> {
@@ -225,7 +218,7 @@ export class DWLFApiClient {
   }
 
   private shouldRetry(error: AxiosError, attempt: number): boolean {
-    if (attempt >= this.retryConfig.maxRetries) {
+    if (attempt > this.retryConfig.maxRetries) {
       return false;
     }
 
@@ -278,7 +271,7 @@ export class DWLFApiClient {
         return response.data as T;
       } catch (error: unknown) {
         if (!this.shouldRetry(error as AxiosError, attempt)) {
-          throw error;
+          return this.handleError(error as AxiosError);
         }
 
         const delay = this.calculateRetryDelay(attempt);
