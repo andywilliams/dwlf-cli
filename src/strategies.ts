@@ -48,7 +48,7 @@ export interface StrategySignal {
 }
 
 export interface StrategyConfiguration {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface StrategiesResponse {
@@ -276,7 +276,7 @@ export function createStrategiesCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new DWLFApiClient({ apiKey: apiKey!, baseUrl: apiUrl });
 
-        const params: any = {
+        const params: Record<string, unknown> = {
           limit: parseInt(options.limit)
         };
 
@@ -297,8 +297,9 @@ export function createStrategiesCommand(): Command {
           console.log(chalk.gray(`Showing ${response.strategies.length} of ${response.pagination.total} strategies`));
         }
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch strategies:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch strategies:'), errorMessage);
       }
     });
 
@@ -330,8 +331,9 @@ export function createStrategiesCommand(): Command {
         console.log();
         displayStrategyDetails(strategy);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch strategy details:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch strategy details:'), errorMessage);
       }
     });
 
@@ -355,7 +357,7 @@ export function createStrategiesCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new DWLFApiClient({ apiKey: apiKey!, baseUrl: apiUrl });
 
-        const params: any = {
+        const params: Record<string, unknown> = {
           strategy: strategyId,
           limit: parseInt(options.limit)
         };
@@ -418,8 +420,9 @@ export function createStrategiesCommand(): Command {
 
         console.log(table.toString());
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch strategy signals:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch strategy signals:'), errorMessage);
       }
     });
 
@@ -465,8 +468,9 @@ export function createStrategiesCommand(): Command {
           }
         }
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to activate strategy:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to activate strategy:'), errorMessage);
       }
     });
 
@@ -512,8 +516,9 @@ export function createStrategiesCommand(): Command {
           }
         }
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to deactivate strategy:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to deactivate strategy:'), errorMessage);
       }
     });
 
@@ -535,7 +540,7 @@ export function createStrategiesCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new DWLFApiClient({ apiKey: apiKey!, baseUrl: apiUrl });
 
-        const params: any = {};
+        const params: Record<string, unknown> = {};
         if (options.symbol) {
           params.symbol = normalizeSymbol(options.symbol);
         }
@@ -550,8 +555,9 @@ export function createStrategiesCommand(): Command {
         console.log(chalk.bold.cyan(`📊 Activation Status for Strategy ${strategyId.substring(0, 10)}...\n`));
         displayActivationTable(response.activations);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch activation status:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch activation status:'), errorMessage);
       }
     });
 

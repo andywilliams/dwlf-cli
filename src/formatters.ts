@@ -359,13 +359,13 @@ export const formatTradesCSV = (data: TradeData[]): string => {
 };
 
 // JSON formatter
-export const formatJSON = (data: any, pretty: boolean = true): string => {
+export const formatJSON = (data: unknown, pretty: boolean = true): string => {
   return JSON.stringify(data, null, pretty ? 2 : 0);
 };
 
 // Main formatter function
 export const formatData = (
-  data: any, 
+  data: unknown, 
   type: 'prices' | 'trades' | 'signals' | 'performance', 
   options: FormatOptions = {}
 ): string => {

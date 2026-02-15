@@ -53,7 +53,7 @@ class SimpleApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private async request(method: string, endpoint: string, body?: any): Promise<any> {
+  private async request(method: string, endpoint: string, body?: unknown): Promise<unknown> {
     const url = `${this.baseUrl}/v2${endpoint}`;
     
     const options: RequestInit = {
@@ -88,7 +88,7 @@ class SimpleApiClient {
     return response.json();
   }
 
-  async get(endpoint: string, params?: any): Promise<any> {
+  async get(endpoint: string, params?: Record<string, unknown>): Promise<unknown> {
     let url = endpoint;
     if (params) {
       const searchParams = new URLSearchParams();
@@ -105,11 +105,11 @@ class SimpleApiClient {
     return this.request('GET', url);
   }
 
-  async post(endpoint: string, body?: any): Promise<any> {
+  async post(endpoint: string, body?: unknown): Promise<unknown> {
     return this.request('POST', endpoint, body);
   }
 
-  async delete(endpoint: string): Promise<any> {
+  async delete(endpoint: string): Promise<unknown> {
     return this.request('DELETE', endpoint);
   }
 }
@@ -397,8 +397,9 @@ export function createBacktestCommand(): Command {
         console.log();
         displayBacktestResults(results, options.showTrades);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to run backtest:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to run backtest:'), errorMessage);
       }
     });
 
@@ -421,7 +422,7 @@ export function createBacktestCommand(): Command {
         const apiUrl = await getApiUrl();
         const client = new SimpleApiClient(apiKey!, apiUrl);
 
-        const params: any = {
+        const params: Record<string, unknown> = {
           limit: parseInt(options.limit)
         };
 
@@ -435,8 +436,9 @@ export function createBacktestCommand(): Command {
         console.log(chalk.bold.cyan('🔬 Your Backtests\n'));
         displayBacktestTable(response.backtests);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch backtests:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch backtests:'), errorMessage);
       }
     });
 
@@ -490,8 +492,9 @@ export function createBacktestCommand(): Command {
           console.log(chalk.gray('Use `dwlf backtest results <requestId>` to view detailed results'));
         }
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch backtest status:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch backtest status:'), errorMessage);
       }
     });
 
@@ -525,8 +528,9 @@ export function createBacktestCommand(): Command {
         console.log();
         displayBacktestResults(results, options.trades);
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch backtest results:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch backtest results:'), errorMessage);
       }
     });
 
@@ -569,8 +573,9 @@ export function createBacktestCommand(): Command {
 
         console.log(chalk.green('✅ Backtest deleted successfully'));
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to delete backtest:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to delete backtest:'), errorMessage);
       }
     });
 
@@ -605,8 +610,9 @@ export function createBacktestCommand(): Command {
           displayBacktestTable(summary.recentBacktests);
         }
 
-      } catch (error: any) {
-        console.error(chalk.red('❌ Failed to fetch backtest summary:'), error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('❌ Failed to fetch backtest summary:'), errorMessage);
       }
     });
 
