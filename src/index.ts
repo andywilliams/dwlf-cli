@@ -27,6 +27,10 @@ import { createChartCommand } from './chart';
 import { createStrategiesCommand } from './strategies';
 import { createIndicatorsCommand } from './indicators';
 import { createCompletionCommand } from './completion';
+import { createRegimeCommand } from './regime';
+import { createIntelligenceCommand } from './intelligence';
+import { createBriefingCommand } from './briefing';
+import { createRegisterCommand } from './register';
 // Removed unused imports from ux-utils
 
 const program = new Command();
@@ -836,6 +840,18 @@ program.addCommand(createBacktestCommand());
 
 // Add the completion command
 program.addCommand(createCompletionCommand());
+
+// Add the regime command
+program.addCommand(createRegimeCommand());
+
+// Add the intelligence command
+program.addCommand(createIntelligenceCommand());
+
+// Add the briefing command
+program.addCommand(createBriefingCommand());
+
+// Add the register command
+program.addCommand(createRegisterCommand());
 
 program
   .command('demo')
