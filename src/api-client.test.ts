@@ -451,12 +451,12 @@ describe('DWLFApiClient', () => {
 
       // toHaveBeenCalledWith uses toEqual semantics, which ignore
       // present-but-undefined keys — it cannot distinguish { initialStop: 294 }
-      // from { initialStop: 294, initialTakeProfit: undefined }. Assert on the
-      // recorded call with strict equality so a "tidy-up" back to an unguarded
-      // object literal actually fails this test.
-      expect(mockAxiosInstance.put.mock.calls[0]).toStrictEqual([
-        '/trades/t1', { initialStop: 294 }, { params: undefined }
-      ]);
+      // from { initialStop: 294, initialTakeProfit: undefined }. Strict-assert
+      // the recorded BODY so a "tidy-up" back to an unguarded object literal
+      // actually fails this test; path and config stay on the loose matcher
+      // (they are makeRequest's concern, covered by the preceding test).
+      expect(mockAxiosInstance.put.mock.calls[0]?.[1]).toStrictEqual({ initialStop: 294 });
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith('/trades/t1', expect.anything(), { params: undefined });
     });
 
     test('delete method works correctly', async () => {
