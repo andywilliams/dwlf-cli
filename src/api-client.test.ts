@@ -425,6 +425,35 @@ describe('DWLFApiClient', () => {
       });
     });
 
+    test('updateTrade sends the API field names, not the friendly ones', async () => {
+      // This bug class is SILENT: the wrong names produced a 200 and a
+      // "Trade updated successfully!" message while the stop never moved, so
+      // nothing failed loudly and it survived until someone read the stored
+      // value by hand. Pin the wire shape so a future "tidy-up" back to a
+      // passthrough is a red test rather than another silent no-op.
+      const client = new DWLFApiClient({ maxRetries: 0 });
+      mockAxiosInstance.put.mockResolvedValueOnce({ data: { tradeId: 't1' } });
+
+      await client.updateTrade('t1', { stopLoss: 294, takeProfit: 434, notes: 'n' });
+
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        '/trades/t1',
+        { initialStop: 294, initialTakeProfit: 434, notes: 'n' },
+        { params: undefined }
+      );
+    });
+
+    test('updateTrade omits fields the caller did not supply', async () => {
+      const client = new DWLFApiClient({ maxRetries: 0 });
+      mockAxiosInstance.put.mockResolvedValueOnce({ data: { tradeId: 't1' } });
+
+      await client.updateTrade('t1', { stopLoss: 294 });
+
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        '/trades/t1', { initialStop: 294 }, { params: undefined }
+      );
+    });
+
     test('delete method works correctly', async () => {
       const client = new DWLFApiClient({ maxRetries: 0 });
       mockAxiosInstance.delete.mockResolvedValueOnce({ data: { deleted: true } });
