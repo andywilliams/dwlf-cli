@@ -425,6 +425,39 @@ describe('DWLFApiClient', () => {
       });
     });
 
+    test('delete method works correctly', async () => {
+      const client = new DWLFApiClient({ maxRetries: 0 });
+      mockAxiosInstance.delete.mockResolvedValueOnce({ data: { deleted: true } });
+      
+      const result = await client.delete('/delete/123');
+      
+      expect(result).toEqual({ deleted: true });
+      expect(mockAxiosInstance.delete).toHaveBeenCalledWith('/delete/123', {
+        params: undefined
+      });
+    });
+
+    test('cleans undefined parameters', async () => {
+      const client = new DWLFApiClient({ maxRetries: 0 });
+      mockAxiosInstance.get.mockResolvedValueOnce({ data: { result: 'success' } });
+      
+      await client.get('/test', { 
+        param1: 'value1', 
+        param2: undefined, 
+        param3: null, 
+        param4: 'value4' 
+      });
+      
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/test', {
+        params: { param1: 'value1', param4: 'value4' }
+      });
+    });
+  });
+
+  describe('trade management methods', () => {
+    // Home for the trade-level methods (updateTrade, and the openTrade /
+    // closeTrade follow-ups) — these are not HTTP wrappers, they own the
+    // friendly-name -> API-name mapping at the client boundary.
     test('updateTrade sends the API field names, not the friendly ones', async () => {
       // This bug class is SILENT: the wrong names produced a 200 and a
       // "Trade updated successfully!" message while the stop never moved, so
@@ -457,34 +490,6 @@ describe('DWLFApiClient', () => {
       // (they are makeRequest's concern, covered by the preceding test).
       expect(mockAxiosInstance.put.mock.calls[0]?.[1]).toStrictEqual({ initialStop: 294 });
       expect(mockAxiosInstance.put).toHaveBeenCalledWith('/trades/t1', expect.anything(), { params: undefined });
-    });
-
-    test('delete method works correctly', async () => {
-      const client = new DWLFApiClient({ maxRetries: 0 });
-      mockAxiosInstance.delete.mockResolvedValueOnce({ data: { deleted: true } });
-      
-      const result = await client.delete('/delete/123');
-      
-      expect(result).toEqual({ deleted: true });
-      expect(mockAxiosInstance.delete).toHaveBeenCalledWith('/delete/123', {
-        params: undefined
-      });
-    });
-
-    test('cleans undefined parameters', async () => {
-      const client = new DWLFApiClient({ maxRetries: 0 });
-      mockAxiosInstance.get.mockResolvedValueOnce({ data: { result: 'success' } });
-      
-      await client.get('/test', { 
-        param1: 'value1', 
-        param2: undefined, 
-        param3: null, 
-        param4: 'value4' 
-      });
-      
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/test', {
-        params: { param1: 'value1', param4: 'value4' }
-      });
     });
   });
 

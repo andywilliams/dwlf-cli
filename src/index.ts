@@ -627,7 +627,7 @@ tradesCmd
   .command('update')
   .description('Update trade parameters')
   .requiredOption('--id <tradeId>', 'trade ID to update')
-  .option('--stop <price>', 'new stop loss price')
+  .option('--stop <price>', 'new stop loss price (rewrites the R baseline: stored as initialStop, so R-multiples recompute from it — for correcting a wrong stop, not for trailing behind price)')
   .option('--target <price>', 'new take profit price')
   .option('--notes <text>', 'update notes')
   .action(async (options) => {
