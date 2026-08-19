@@ -401,7 +401,18 @@ export class DWLFApiClient {
     takeProfit?: number;
     notes?: string;
   }): Promise<Trade> {
-    return this.put(`/trades/${tradeId}`, updates);
+    // The friendly names above are this client's INPUT vocabulary; the API's
+    // whitelist is initialStop / initialTakeProfit. Passing `updates` straight
+    // through meant the backend dropped the unknown fields and still returned
+    // 200 — so `dwlf trade update --stop-loss X` printed "Trade updated
+    // successfully!" while changing nothing. Map at the boundary. `notes` is
+    // on the whitelist under its own name (UPDATABLE_FIELDS in the API's
+    // tradeJournalService.js), so it passes through unmapped.
+    const body: Record<string, unknown> = {};
+    if (updates.stopLoss !== undefined) body.initialStop = updates.stopLoss;
+    if (updates.takeProfit !== undefined) body.initialTakeProfit = updates.takeProfit;
+    if (updates.notes !== undefined) body.notes = updates.notes;
+    return this.put(`/trades/${tradeId}`, body);
   }
 
   async closeTrade(tradeId: string, data: {

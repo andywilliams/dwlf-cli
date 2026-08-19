@@ -454,6 +454,45 @@ describe('DWLFApiClient', () => {
     });
   });
 
+  describe('trade management methods', () => {
+    // Home for the trade-level methods (updateTrade, and the openTrade /
+    // closeTrade follow-ups) — these are not HTTP wrappers, they own the
+    // friendly-name -> API-name mapping at the client boundary.
+    test('updateTrade sends the API field names, not the friendly ones', async () => {
+      // This bug class is SILENT: the wrong names produced a 200 and a
+      // "Trade updated successfully!" message while the stop never moved, so
+      // nothing failed loudly and it survived until someone read the stored
+      // value by hand. Pin the wire shape so a future "tidy-up" back to a
+      // passthrough is a red test rather than another silent no-op.
+      const client = new DWLFApiClient({ maxRetries: 0 });
+      mockAxiosInstance.put.mockResolvedValueOnce({ data: { tradeId: 't1' } });
+
+      await client.updateTrade('t1', { stopLoss: 294, takeProfit: 434, notes: 'n' });
+
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        '/trades/t1',
+        { initialStop: 294, initialTakeProfit: 434, notes: 'n' },
+        { params: undefined }
+      );
+    });
+
+    test('updateTrade omits fields the caller did not supply', async () => {
+      const client = new DWLFApiClient({ maxRetries: 0 });
+      mockAxiosInstance.put.mockResolvedValueOnce({ data: { tradeId: 't1' } });
+
+      await client.updateTrade('t1', { stopLoss: 294 });
+
+      // toHaveBeenCalledWith uses toEqual semantics, which ignore
+      // present-but-undefined keys — it cannot distinguish { initialStop: 294 }
+      // from { initialStop: 294, initialTakeProfit: undefined }. Strict-assert
+      // the recorded BODY so a "tidy-up" back to an unguarded object literal
+      // actually fails this test; path and config stay on the loose matcher
+      // (they are makeRequest's concern, covered by the preceding test).
+      expect(mockAxiosInstance.put.mock.calls[0]?.[1]).toStrictEqual({ initialStop: 294 });
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith('/trades/t1', expect.anything(), { params: undefined });
+    });
+  });
+
   describe('validateApiKey method', () => {
     test('returns valid result when API key works', async () => {
       const client = new DWLFApiClient({ apiKey: 'dwlf_sk_test123' });
