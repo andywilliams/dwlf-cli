@@ -449,9 +449,14 @@ describe('DWLFApiClient', () => {
 
       await client.updateTrade('t1', { stopLoss: 294 });
 
-      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+      // toHaveBeenCalledWith uses toEqual semantics, which ignore
+      // present-but-undefined keys — it cannot distinguish { initialStop: 294 }
+      // from { initialStop: 294, initialTakeProfit: undefined }. Assert on the
+      // recorded call with strict equality so a "tidy-up" back to an unguarded
+      // object literal actually fails this test.
+      expect(mockAxiosInstance.put.mock.calls[0]).toStrictEqual([
         '/trades/t1', { initialStop: 294 }, { params: undefined }
-      );
+      ]);
     });
 
     test('delete method works correctly', async () => {
