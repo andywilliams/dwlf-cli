@@ -43,6 +43,9 @@ export function normalizeSymbol(input: string): string {
   return `${s}-USD`;
 }
 
+// URL joining lives here (DWLF-505). DWLFApiClient uses apiRootUrl + API_VERSION_PREFIX as its axios baseURL and
+// normalizeApiPath per request; fetch-based callers use buildApiUrl. Both shapes of /v2 are tolerated on purpose:
+// the API has no /v2/v2 routes, so stripping a duplicate can only turn a 404 into the intended request.
 const API_VERSION_PREFIX = '/v2';
 
 /**
@@ -61,7 +64,7 @@ export function normalizeApiPath(path: string): string {
 }
 
 /**
- * The single place a full API URL is built: root + /v2 + endpoint path
+ * Full API URL for clients without an axios baseURL: root + /v2 + endpoint path
  */
 export function buildApiUrl(baseUrl: string, path: string): string {
   return `${apiRootUrl(baseUrl)}${API_VERSION_PREFIX}${normalizeApiPath(path)}`;
