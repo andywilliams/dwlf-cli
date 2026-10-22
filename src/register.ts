@@ -139,7 +139,7 @@ export function createRegisterCommand(): Command {
           baseUrl: apiUrl 
         });
         
-        response = await client.post<RegisterResponse>('/v2/agent/register', requestBody);
+        response = await client.post<RegisterResponse>('/agent/register', requestBody);
         spinner.stop();
       } catch (error: unknown) {
         spinner.stop();

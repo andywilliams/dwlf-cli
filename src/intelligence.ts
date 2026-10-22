@@ -247,7 +247,7 @@ export function createIntelligenceCommand(): Command {
       let data: IntelligenceData;
       
       try {
-        data = await client.get<IntelligenceData>(`/v2/intelligence/${normalizedSymbol}`);
+        data = await client.get<IntelligenceData>(`/intelligence/${normalizedSymbol}`);
         spinner.stop();
       } catch (error: unknown) {
         spinner.stop();

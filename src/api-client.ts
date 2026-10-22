@@ -43,6 +43,30 @@ export function normalizeSymbol(input: string): string {
   return `${s}-USD`;
 }
 
+const API_VERSION_PREFIX = '/v2';
+
+/**
+ * API root without trailing slashes or a trailing /v2, so a configured apiUrl works either way
+ */
+export function apiRootUrl(baseUrl: string): string {
+  return baseUrl.replace(/\/+$/, '').replace(/\/v2$/, '');
+}
+
+/**
+ * Endpoint path relative to the versioned base: one leading slash, no /v2 segment (the base already has it)
+ */
+export function normalizeApiPath(path: string): string {
+  const withSlash = `/${path.replace(/^\/+/, '')}`;
+  return withSlash.replace(/^\/v2(?=\/|$)/, '') || '/';
+}
+
+/**
+ * The single place a full API URL is built: root + /v2 + endpoint path
+ */
+export function buildApiUrl(baseUrl: string, path: string): string {
+  return `${apiRootUrl(baseUrl)}${API_VERSION_PREFIX}${normalizeApiPath(path)}`;
+}
+
 export interface ApiValidationResult {
   valid: boolean;
   error?: string;
@@ -107,6 +131,7 @@ class RateLimiter {
  */
 export class DWLFApiClient {
   private http: AxiosInstance;
+  private rootUrl: string;
   private retryConfig: RetryConfig;
   private rateLimiter?: RateLimiter;
 
@@ -133,9 +158,11 @@ export class DWLFApiClient {
       backoffMultiplier: 2
     };
 
+    this.rootUrl = apiRootUrl(baseUrl);
+
     // Create axios instance with default configuration
     this.http = axios.create({
-      baseURL: `${baseUrl}/v2`,
+      baseURL: `${this.rootUrl}${API_VERSION_PREFIX}`,
       timeout,
       // The API never redirects; native transport keeps follow-redirects from forwarding or debug-logging the API key
       maxRedirects: 0,
@@ -254,19 +281,20 @@ export class DWLFApiClient {
           params: params ? this.cleanParams(params) : undefined,
         };
 
+        const url = normalizeApiPath(path);
         let response;
         switch (method) {
           case 'get':
-            response = await this.http.get(path, config);
+            response = await this.http.get(url, config);
             break;
           case 'post':
-            response = await this.http.post(path, data, config);
+            response = await this.http.post(url, data, config);
             break;
           case 'put':
-            response = await this.http.put(path, data, config);
+            response = await this.http.put(url, data, config);
             break;
           case 'delete':
-            response = await this.http.delete(path, config);
+            response = await this.http.delete(url, config);
             break;
         }
 
@@ -334,7 +362,7 @@ export class DWLFApiClient {
   async testConnectivity(): Promise<boolean> {
     try {
       // Test connectivity without authentication
-      const response = await axios.get(`${this.http.defaults.baseURL?.replace('/v2', '')}/health`, {
+      const response = await axios.get(`${this.rootUrl}/health`, {
         timeout: 5000
       });
       return response.status === 200;
