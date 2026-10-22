@@ -47,12 +47,14 @@ export function normalizeSymbol(input: string): string {
 // normalizeApiPath per request; fetch-based callers use buildApiUrl. Both shapes of /v2 are tolerated on purpose:
 // the API has no /v2/v2 routes, so stripping a duplicate can only turn a 404 into the intended request.
 const API_VERSION_PREFIX = '/v2';
+const TRAILING_VERSION = new RegExp(`${API_VERSION_PREFIX}$`);
+const LEADING_VERSION = new RegExp(`^${API_VERSION_PREFIX}(?=/|$)`);
 
 /**
  * API root without trailing slashes or a trailing /v2, so a configured apiUrl works either way
  */
 export function apiRootUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/, '').replace(/\/v2$/, '');
+  return baseUrl.replace(/\/+$/, '').replace(TRAILING_VERSION, '');
 }
 
 /**
@@ -60,7 +62,7 @@ export function apiRootUrl(baseUrl: string): string {
  */
 export function normalizeApiPath(path: string): string {
   const withSlash = `/${path.replace(/^\/+/, '')}`;
-  return withSlash.replace(/^\/v2(?=\/|$)/, '') || '/';
+  return withSlash.replace(LEADING_VERSION, '') || '/';
 }
 
 /**

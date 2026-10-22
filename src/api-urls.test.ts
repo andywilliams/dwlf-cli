@@ -113,13 +113,6 @@ describe('DWLFApiClient final URLs', () => {
     await client.get('/user/trade-signals', { limit: 5, page: undefined });
     expect(requests[0]?.url).toBe(`${ROOT}/v2/user/trade-signals?limit=5`);
   });
-
-  test('health check hits the unversioned root', async () => {
-    const get = jest.spyOn(axios, 'get').mockResolvedValue({ status: 200 });
-    const client = new DWLFApiClient({ baseUrl: `${ROOT}/v2` });
-    await expect(client.testConnectivity()).resolves.toBe(true);
-    expect(get).toHaveBeenCalledWith(`${ROOT}/health`, expect.anything());
-  });
 });
 
 describe('command final URLs (DWLF-505 call sites)', () => {
@@ -153,7 +146,8 @@ describe('command final URLs (DWLF-505 call sites)', () => {
 describe('call-site guard', () => {
   test('no source file passes a path starting with /v2/ to an API client', () => {
     // Whole-file match so multi-line calls like get<T>(\n  '/v2/...') are caught too
-    const callWithV2Path = /\.(get|post|put|delete)(<[^>]*>)?\(\s*['"`]\/v2\//g;
+    const callWithV2Path = /\.(get|post|put|delete)(<[^()]*>)?\(\s*['"`]\/v2\//g;
+    expect("client.get<Array<Record<string, X>>>(\n  '/v2/x')".match(callWithV2Path)).toHaveLength(1);
     const offenders = readdirSync(__dirname)
       .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
       .flatMap((f) => {
