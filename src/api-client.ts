@@ -137,6 +137,8 @@ export class DWLFApiClient {
     this.http = axios.create({
       baseURL: `${baseUrl}/v2`,
       timeout,
+      // The API never redirects; native transport keeps follow-redirects from forwarding or debug-logging the API key
+      maxRedirects: 0,
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'dwlf-cli/0.1.0',

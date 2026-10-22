@@ -102,6 +102,7 @@ describe('DWLFApiClient', () => {
       expect(mockedAxios.create).toHaveBeenCalledWith({
         baseURL: 'https://api.dwlf.co.uk/v2',
         timeout: 30000,
+        maxRedirects: 0,
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'dwlf-cli/0.1.0'
@@ -121,6 +122,7 @@ describe('DWLFApiClient', () => {
       expect(mockedAxios.create).toHaveBeenCalledWith({
         baseURL: 'https://custom-api.test.com/v2',
         timeout: 60000,
+        maxRedirects: 0,
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'dwlf-cli/0.1.0',
