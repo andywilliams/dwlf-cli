@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import Table from 'cli-table3';
 import ora from 'ora';
 import { getApiKey, getApiUrl, isAuthenticated } from './config';
+import { buildApiUrl } from './api-client';
 
 /**
  * Normalize symbol input to DWLF's expected format (e.g. BTC-USD).
@@ -54,7 +55,7 @@ class SimpleApiClient {
   }
 
   private async request<T = unknown>(method: string, endpoint: string, body?: unknown): Promise<T> {
-    const url = `${this.baseUrl}/v2${endpoint}`;
+    const url = buildApiUrl(this.baseUrl, endpoint);
     
     const options: RequestInit = {
       method,

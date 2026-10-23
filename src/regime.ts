@@ -184,7 +184,7 @@ export function createRegimeCommand(): Command {
         // Fetch regime history
         const spinner = ora('Fetching regime history...').start();
         try {
-          const response = await client.get<RegimeHistoryResponse>(`/v2/regime/${normalizedSymbol}/history`);
+          const response = await client.get<RegimeHistoryResponse>(`/regime/${normalizedSymbol}/history`);
           spinner.stop();
           
           if (options.json) {
@@ -212,7 +212,7 @@ export function createRegimeCommand(): Command {
         let regime: RegimeData;
         
         try {
-          regime = await client.get<RegimeData>(`/v2/regime/${normalizedSymbol}`);
+          regime = await client.get<RegimeData>(`/regime/${normalizedSymbol}`);
           spinner.stop();
         } catch (error: unknown) {
           spinner.stop();

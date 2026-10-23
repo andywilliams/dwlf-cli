@@ -524,7 +524,7 @@ describe('DWLFApiClient', () => {
 
   describe('testConnectivity method', () => {
     test('returns true when health endpoint is reachable', async () => {
-      const client = new DWLFApiClient({ maxRetries: 0 });
+      const client = new DWLFApiClient({ baseUrl: 'https://api.test.com', maxRetries: 0 });
       mockedAxios.get.mockResolvedValueOnce({ 
         status: 200, 
         data: {}, 

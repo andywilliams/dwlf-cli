@@ -139,7 +139,7 @@ async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}):
     if (filters.page) params.page = filters.page;
 
     // Fetch from signals API endpoint
-    const apiResponse = await client.get<SignalsApiResponse>('/v2/user/trade-signals', params);
+    const apiResponse = await client.get<SignalsApiResponse>('/user/trade-signals', params);
     
     // Transform API response to CLI format
     const signals = apiResponse.signals ? apiResponse.signals.map((apiSignal: ApiSignal) => {
@@ -173,7 +173,7 @@ async function fetchSignals(client: DWLFApiClient, filters: SignalFilters = {}):
  */
 async function fetchSignalDetails(client: DWLFApiClient, signalId: string): Promise<Signal> {
   try {
-    const apiSignal = await client.get<ApiSignal>(`/v2/trade-signals/${signalId}`);
+    const apiSignal = await client.get<ApiSignal>(`/trade-signals/${signalId}`);
     const signal = transformApiSignal(apiSignal);
     return {
       ...signal,

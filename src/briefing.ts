@@ -221,7 +221,7 @@ export function createBriefingCommand(): Command {
       let response: BriefingResponse;
       
       try {
-        response = await client.get<BriefingResponse>('/v2/briefing/daily');
+        response = await client.get<BriefingResponse>('/briefing/daily');
         spinner.stop();
       } catch (error: unknown) {
         spinner.stop();
